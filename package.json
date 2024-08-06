@@ -1,0 +1,17 @@
+{
+  "name": "wow-unity-extras.davidrios",
+  "version": "0.1.0",
+  "description": "Utilities to complement wow.unity in making use of wow assets for a working map.",
+  "displayName": "wow.unity_extras",
+  "unity": "2021.1",
+  "author": {
+    "name": "David Rios",
+    "email": "david.rios.gomes@gmail.com",
+    "url": "https://github.com/davidrios/wow.unity_extras"
+  },
+  "type": "tool",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.cloud.gltfast": "6.2.0"
+  }
+}
