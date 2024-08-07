@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.AI;
 
 namespace WoWUnityExtras
 {
@@ -11,6 +12,7 @@ namespace WoWUnityExtras
 
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(CreatureAnimation))]
+    [RequireComponent(typeof(NavMeshAgent))]
     public class Creature : MonoBehaviour
     {
         private static readonly float gravity = -9.81f;
@@ -18,9 +20,17 @@ namespace WoWUnityExtras
         private static readonly float baseSpeed = 2;
 
         [SerializeField]
+        private float walkSpeed = 1;
+        [SerializeField]
         private float wanderRange = 0;
         [SerializeField]
-        private float walkSpeed = 1;
+        private float wanderMinDistance = 2;
+        [SerializeField]
+        private float wanderNowaitChance = 0.2f;
+        [SerializeField]
+        private float wanderMinWait = 5;
+        [SerializeField]
+        private float wanderMaxWait = 5;
 
         private CharacterController characterController;
         private CreatureAnimation creatureAnimation;
@@ -29,14 +39,34 @@ namespace WoWUnityExtras
         private Vector3 direction;
         private float turnVelocity;
 
+        private NavMeshAgent navMeshAgent;
+        private bool isWandering;
+        private Vector3 startPosition;
+        private float wanderWait;
+        private float lastWanderSeconds;
+
         void Start()
         {
             characterController = GetComponent<CharacterController>();
             creatureAnimation = GetComponent<CreatureAnimation>();
+
+            navMeshAgent = GetComponent<NavMeshAgent>();
+            navMeshAgent.angularSpeed = 0;
+            navMeshAgent.speed = 1;
+            navMeshAgent.autoBraking = false;
+            navMeshAgent.isStopped = true;
+
+            if (navMeshAgent.stoppingDistance == 0)
+                navMeshAgent.stoppingDistance = 0.5f;
+
+            startPosition = gameObject.transform.position;
         }
 
         void Update()
         {
+            if (navMeshAgent.isActiveAndEnabled)
+                Wander();
+
             ApplyGravity();
             ApplyMovement();
             ApplyRotation();
@@ -90,12 +120,74 @@ namespace WoWUnityExtras
             transform.rotation = Quaternion.Euler(0, angle, 0);
         }
 
-        public void Move(Vector2 direction)
+        void Wander()
+        {
+            if (wanderRange == 0)
+            {
+                if (isWandering)
+                    StopWandering();
+
+                return;
+            }
+
+            if (creatureState == CreatureState.Idle && !isWandering)
+            {
+                lastWanderSeconds += Time.deltaTime;
+                if (lastWanderSeconds > wanderWait)
+                {
+                    var point = new Vector2(startPosition.x, startPosition.z) + (Random.insideUnitCircle * Random.Range(0, wanderRange));
+                    if (Vector2.Distance(new Vector2(transform.position.x, transform.position.z), point) > wanderMinDistance)
+                    {
+                        var rayStart = new Vector3(
+                            point.x,
+                            startPosition.y + 100,
+                            point.y
+                        );
+
+                        if (Physics.Raycast(rayStart, Vector3.down, out var hit, 200))
+                        {
+                            navMeshAgent.SetDestination(hit.point);
+                            navMeshAgent.isStopped = false;
+                            isWandering = true;
+
+                            if (Random.value < wanderNowaitChance)
+                                wanderWait = 0;
+                            else
+                                wanderWait = Random.Range(wanderMinWait, wanderMaxWait);
+                        }
+                    }
+                }
+            }
+
+            if (isWandering)
+            {
+                if (navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
+                    InternalMove(walkSpeed * new Vector2(navMeshAgent.desiredVelocity.x, navMeshAgent.desiredVelocity.z));
+                else
+                    StopWandering();
+            }
+        }
+
+        void StopWandering()
+        {
+            navMeshAgent.isStopped = true;
+            isWandering = false;
+            lastWanderSeconds = 0;
+            InternalMove(Vector2.zero);
+        }
+
+        private void InternalMove(Vector2 direction)
         {
             if (creatureState == CreatureState.Dead)
                 return;
 
             this.direction = new Vector3(direction.x, 0, direction.y);
+        }
+
+        public void Move(Vector2 direction)
+        {
+            isWandering = false;
+            InternalMove(direction);
         }
 
         public void Die()
@@ -104,6 +196,8 @@ namespace WoWUnityExtras
                 return;
 
             creatureState = CreatureState.Dead;
+            StopWandering();
+            direction = Vector3.zero;
             creatureAnimation.Die();
         }
     }
