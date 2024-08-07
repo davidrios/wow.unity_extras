@@ -8,6 +8,8 @@ namespace WoWUnityExtras
         [SerializeField]
         private GameObject death;
         [SerializeField]
+        private GameObject step;
+        [SerializeField]
         private GameObject wingFlap;
         [SerializeField]
         private GameObject fidget1;
@@ -15,6 +17,7 @@ namespace WoWUnityExtras
         private GameObject fidget2;
 
         private SoundKit skDeath;
+        private SoundKit skStep;
         private SoundKit skWingFlap;
         private SoundKit skFidget1;
         private SoundKit skFidget2;
@@ -42,6 +45,15 @@ namespace WoWUnityExtras
 
             if (skDeath != null)
                 skDeath.PlayRandom();
+        }
+
+        public void PlayStep()
+        {
+            if (step != null && skStep == null)
+                skStep = GetSoundKit(step, "step");
+
+            if (skStep != null)
+                skStep.PlayRandom();
         }
 
         public void PlayWingFlap()

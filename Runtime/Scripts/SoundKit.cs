@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace WoWUnityExtras
@@ -23,20 +22,6 @@ namespace WoWUnityExtras
                 PopulateSources();
 
             audioSources[Random.Range(0, audioSources.Count)].Play();
-        }
-    }
-
-    [CustomEditor(typeof(SoundKit))]
-    public class SoundKitEditor : Editor
-    {
-        public override void OnInspectorGUI()
-        {
-            base.OnInspectorGUI();
-
-            var soundKit = target as SoundKit;
-
-            if (GUILayout.Button("Play random"))
-                soundKit.PlayRandom();
         }
     }
 }
