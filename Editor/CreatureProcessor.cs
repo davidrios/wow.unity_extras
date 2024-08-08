@@ -87,7 +87,7 @@ namespace WoWUnityExtras
         {
             var (creatureTable, bounds) = GetTableAndBounds(creatureTableJson, mapArea);
 
-            HashSet<int> ids = new();
+            Dictionary<int, int> ids = new();
             foreach (var creatureRow in creatureTable)
             {
                 if (creatureRow.map != mapId)
@@ -96,10 +96,13 @@ namespace WoWUnityExtras
                 if (!bounds.Contains(GetCreaturePosition(creatureRow)))
                     continue;
 
-                ids.Add(creatureRow.id1);
+                if (ids.TryGetValue(creatureRow.id1, out var count))
+                    ids[creatureRow.id1] = count + 1;
+                else
+                    ids.Add(creatureRow.id1, 1);
             }
 
-            var idsS = ids.ToList();
+            var idsS = ids.Select(item => (item.Key, item.Value)).ToList();
             idsS.Sort();
             Debug.Log($"ids: ...\n{String.Join("\n", idsS)}");
         }
