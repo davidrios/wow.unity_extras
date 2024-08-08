@@ -35,6 +35,7 @@ namespace WoWUnityExtras
         private CharacterController characterController;
         private CreatureAnimation creatureAnimation;
         private CreatureState creatureState;
+        public CreatureState CreatureState => creatureState;
         private float downVelocity;
         private Vector3 direction;
         private float turnVelocity;
