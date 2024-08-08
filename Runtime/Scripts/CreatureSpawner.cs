@@ -7,8 +7,7 @@ namespace WoWUnityExtras
     {
         private readonly float DespawnTime = 30;
 
-        [SerializeField]
-        private float spawnTime = 10;
+        public float spawnTime = 10;
 
         private readonly List<GameObject> prefabs = new();
         private (GameObject go, Creature creature) alive;

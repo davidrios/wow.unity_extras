@@ -5,8 +5,8 @@ namespace WoWUnityExtras
     public enum CreatureAnimationState
     {
         Idle = 0,
-        Walk = 1,
-        Die = 2
+        Death = 1,
+        Walk = 4
     }
 
     [RequireComponent(typeof(Animator))]
@@ -18,11 +18,6 @@ namespace WoWUnityExtras
         void Start()
         {
             animator = GetComponent<Animator>();
-        }
-
-        void Update()
-        {
-
         }
 
         private void SetState(CreatureAnimationState state)
@@ -41,9 +36,9 @@ namespace WoWUnityExtras
             SetState(CreatureAnimationState.Walk);
         }
 
-        public void Die()
+        public void Death()
         {
-            SetState(CreatureAnimationState.Die);
+            SetState(CreatureAnimationState.Death);
         }
     }
 }

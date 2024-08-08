@@ -19,12 +19,13 @@ namespace WoWUnityExtras
         private static readonly float smoothTurnTime = 0.05f;
         private static readonly float baseSpeed = 2;
 
+        public string creatureName;
+
         [SerializeField]
         private float walkSpeed = 1;
-        [SerializeField]
-        private float wanderRange = 0;
-        [SerializeField]
-        private float wanderMinDistance = 2;
+
+        public float wanderRange = 0;
+        public float wanderMinDistance = 2;
         [SerializeField]
         private float wanderNowaitChance = 0.2f;
         [SerializeField]
@@ -123,7 +124,7 @@ namespace WoWUnityExtras
 
         void Wander()
         {
-            if (wanderRange == 0)
+            if (wanderRange == 0 || !navMeshAgent.isOnNavMesh)
             {
                 if (isWandering)
                     StopWandering();
@@ -171,7 +172,9 @@ namespace WoWUnityExtras
 
         void StopWandering()
         {
-            navMeshAgent.isStopped = true;
+            if (navMeshAgent.isActiveAndEnabled)
+                navMeshAgent.isStopped = true;
+
             isWandering = false;
             lastWanderSeconds = 0;
             InternalMove(Vector2.zero);
@@ -199,7 +202,7 @@ namespace WoWUnityExtras
             creatureState = CreatureState.Dead;
             StopWandering();
             direction = Vector3.zero;
-            creatureAnimation.Die();
+            creatureAnimation.Death();
         }
     }
 }
