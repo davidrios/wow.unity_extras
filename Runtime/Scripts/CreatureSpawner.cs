@@ -29,6 +29,9 @@ namespace WoWUnityExtras
 
         void Update()
         {
+            if (prefabs.Count == 0)
+                return;
+
             if (dead.TryPeek(out var deadInstance))
             {
                 if (Time.fixedTime - deadInstance.deathTime > DespawnTime)

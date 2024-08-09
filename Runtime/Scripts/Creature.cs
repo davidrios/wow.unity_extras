@@ -56,7 +56,8 @@ namespace WoWUnityExtras
             navMeshAgent.angularSpeed = 0;
             navMeshAgent.speed = 1;
             navMeshAgent.autoBraking = false;
-            navMeshAgent.isStopped = true;
+            if (navMeshAgent.isOnNavMesh)
+                navMeshAgent.isStopped = true;
 
             if (navMeshAgent.stoppingDistance == 0)
                 navMeshAgent.stoppingDistance = 0.5f;

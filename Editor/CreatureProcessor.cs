@@ -147,7 +147,7 @@ namespace WoWUnityExtras
                 spawner.transform.parent = target.transform;
                 spawner.transform.localPosition = point;
                 if (randomRotation)
-                    spawner.transform.rotation = Quaternion.Euler(0f, 0f, UnityEngine.Random.Range(0, 360) * Mathf.Deg2Rad);
+                    spawner.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(0, 360), 0f);
 
                 var spawnerComponent = spawner.AddComponent<CreatureSpawner>();
                 spawnerComponent.spawnTime = creatureRow.spawntimesecs;
