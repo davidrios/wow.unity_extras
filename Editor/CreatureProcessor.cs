@@ -234,10 +234,9 @@ namespace WoWUnityExtras
                     }
                 }
 
-                defaultIdle.state.behaviours = new StateMachineBehaviour[1] {
-                    StateMachineBehaviour.CreateInstance<IdleVariations>()
-                };
-                (defaultIdle.state.behaviours[0] as IdleVariations).idleVariations = idleStates.Count;
+                defaultIdle.state.behaviours = new StateMachineBehaviour[0];
+                var behaviour = defaultIdle.state.AddStateMachineBehaviour<IdleVariations>();
+                behaviour.idleVariations = idleStates.Count;
             }
 
             if (knownStates.TryGetValue("4_0", out var walkState))
