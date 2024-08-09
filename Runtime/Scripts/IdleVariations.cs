@@ -8,7 +8,7 @@ namespace WoWUnityExtras
         private static readonly int idleStateParam = Animator.StringToHash("idleState");
 
         [SerializeField]
-        private int idleVariations = 1;
+        public int idleVariations = 1;
         [SerializeField]
         private float idleVariationChance = 0.1f;
         [SerializeField]

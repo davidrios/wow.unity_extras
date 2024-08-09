@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using WoWUnityExtras.Database;
 
@@ -162,6 +164,129 @@ namespace WoWUnityExtras
                     }
                 }
             }
+        }
+
+        public static void SetupAnimations(AnimatorController controller)
+        {
+            controller.parameters = new AnimatorControllerParameter[2] {
+                new() { name = "state", type = AnimatorControllerParameterType.Int },
+                new() { name = "idleState", type = AnimatorControllerParameterType.Int },
+            };
+
+            Dictionary<string, ChildAnimatorState> knownStates = new();
+            foreach (var state in controller.layers[0].stateMachine.states)
+            {
+                var match = Regex.Match(state.state.name, @"^.+ID (\d+) variation (\d+)");
+                if (!match.Success)
+                    continue;
+
+                var id = match.Groups[1].Value;
+                var variation = match.Groups[2].Value;
+
+                switch (id)
+                {
+                    case "0":
+                    case "1":
+                    case "4":
+                        break;
+
+                    default:
+                        continue;
+
+                };
+
+                knownStates[$"{id}_{variation}"] = state;
+                state.state.transitions = new AnimatorStateTransition[0];
+            }
+
+            List<AnimatorState> idleStates = new();
+            List<AnimatorState> allStates = new();
+
+            if (knownStates.TryGetValue("0_0", out var defaultIdle))
+            {
+                idleStates.Add(defaultIdle.state);
+                allStates.Add(defaultIdle.state);
+
+                for (var i = 1; i < 10; i++)
+                {
+                    if (knownStates.TryGetValue($"0_{i}", out var altIdle))
+                    {
+                        idleStates.Add(altIdle.state);
+                        allStates.Add(altIdle.state);
+
+                        defaultIdle.state.AddTransition(new AnimatorStateTransition()
+                        {
+                            destinationState = altIdle.state,
+                            conditions = new AnimatorCondition[2] {
+                                new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 0 },
+                                new () { parameter = "idleState", mode = AnimatorConditionMode.Equals, threshold = i },
+                            },
+                        });
+
+                        altIdle.state.AddTransition(new AnimatorStateTransition()
+                        {
+                            destinationState = defaultIdle.state,
+                            conditions = new AnimatorCondition[2] {
+                                new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 0 },
+                                new () { parameter = "idleState", mode = AnimatorConditionMode.Equals, threshold = 0 },
+                            },
+                        });
+                    }
+                }
+
+                defaultIdle.state.behaviours = new StateMachineBehaviour[1] {
+                    StateMachineBehaviour.CreateInstance<IdleVariations>()
+                };
+                (defaultIdle.state.behaviours[0] as IdleVariations).idleVariations = idleStates.Count;
+            }
+
+            if (knownStates.TryGetValue("4_0", out var walkState))
+            {
+                foreach (var state in allStates)
+                {
+                    state.AddTransition(new AnimatorStateTransition()
+                    {
+                        destinationState = walkState.state,
+                        conditions = new AnimatorCondition[1] {
+                            new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 4 },
+                        },
+                        hasExitTime = false
+                    });
+                }
+
+                if (idleStates.Count > 0)
+                {
+                    walkState.state.AddTransition(new AnimatorStateTransition()
+                    {
+                        destinationState = idleStates[0],
+                        conditions = new AnimatorCondition[1] {
+                            new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 0 },
+                        },
+                        hasExitTime = false
+                    });
+                }
+
+                allStates.Add(walkState.state);
+            }
+
+            if (knownStates.TryGetValue("1_0", out var deathState))
+            {
+                foreach (var state in allStates)
+                {
+                    state.AddTransition(new AnimatorStateTransition()
+                    {
+                        destinationState = deathState.state,
+                        conditions = new AnimatorCondition[1] {
+                            new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 1 },
+                        },
+                        hasExitTime = false
+                    });
+                }
+
+                Debug.LogWarning($"Remember to disable loop time for {deathState.state.name}");
+            }
+
+            AssetDatabase.SaveAssetIfDirty(controller);
         }
     }
 }

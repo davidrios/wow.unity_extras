@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace WoWUnityExtras
@@ -14,6 +15,8 @@ namespace WoWUnityExtras
         private GameObject spawnMapReference;
         private int spawnMapId;
 
+        private AnimatorController animationController;
+
         [MenuItem("Window/wow.unity_extras")]
         public static void ShowWindow()
         {
@@ -24,12 +27,25 @@ namespace WoWUnityExtras
         {
             Selection.selectionChanged += OnJsonSelectionChange;
             Selection.selectionChanged += OnGameObjectSelectionChange;
+            Selection.selectionChanged += OnAnimationSelectionChange;
         }
 
         private void OnDisable()
         {
             Selection.selectionChanged -= OnJsonSelectionChange;
             Selection.selectionChanged -= OnGameObjectSelectionChange;
+            Selection.selectionChanged -= OnAnimationSelectionChange;
+        }
+
+        void OnAnimationSelectionChange()
+        {
+            var selection = Selection.GetFiltered<AnimatorController>(SelectionMode.Unfiltered);
+            if (selection.Length > 0)
+                animationController = selection[0];
+            else
+                animationController = null;
+
+            Repaint();
         }
 
         void OnGameObjectSelectionChange()
@@ -109,6 +125,20 @@ namespace WoWUnityExtras
                     if (GUILayout.Button("Place Spawners"))
                         CreatureProcessor.PlaceCreatureSpawners(creatureSpawnJson, spawnMapReference, selectedGameObject, spawnMapId, spawnCreatureDataJson);
                 }
+            }
+
+            GUILayout.Space(10);
+            GUILayout.Label("Animation", EditorStyles.boldLabel);
+
+            if (animationController != null)
+                GUILayout.Label($"Clip selected: {animationController.name}");
+            else
+                GUILayout.Label("Select animation controller");
+
+            if (animationController != null)
+            {
+                if (GUILayout.Button("Setup Controller"))
+                    CreatureProcessor.SetupAnimations(animationController);
             }
         }
     }
