@@ -54,17 +54,19 @@ namespace WoWUnityExtras
                 }
 
                 var creaturePath = Path.Join(creaturesDir, $"{creatureData.info.entry}_{creatureDisplay.ID}.prefab");
-                var creaturePrefab = PrefabUtility.SaveAsPrefabAsset(prefab, creaturePath);
+                var creaturePrefab = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
                 creaturePrefab.transform.localScale = creatureDisplay.model.ModelScale * creatureDisplay.CreatureModelScale * Vector3.one;
 
                 {
                     if (creaturePrefab.TryGetComponent<CharacterController>(out var characterController))
-                        characterController.stepOffset = creatureDisplay.model.ModelScale * creatureDisplay.CreatureModelScale / 3;
+                        characterController.stepOffset = Math.Min(creatureDisplay.model.ModelScale * creatureDisplay.CreatureModelScale, characterController.height) / 3;
                 }
 
                 if (creaturePrefab.TryGetComponent<Creature>(out var creature))
                     creature.creatureName = creatureData.info.name;
-                PrefabUtility.SavePrefabAsset(creaturePrefab);
+
+                PrefabUtility.SaveAsPrefabAsset(creaturePrefab, creaturePath);
+                UnityEngine.Object.DestroyImmediate(creaturePrefab);
             }
         }
 
