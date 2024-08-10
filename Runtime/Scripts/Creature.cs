@@ -119,8 +119,8 @@ namespace WoWUnityExtras
                 return;
 
             var targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-            var angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnVelocity, smoothTurnTime);
-            transform.rotation = Quaternion.Euler(0, angle, 0);
+            var angle = Mathf.SmoothDampAngle(transform.eulerAngles.y - 90, targetAngle, ref turnVelocity, smoothTurnTime);
+            transform.rotation = Quaternion.Euler(0, angle + 90, 0);
         }
 
         void Wander()
