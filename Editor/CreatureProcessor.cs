@@ -221,6 +221,7 @@ namespace WoWUnityExtras
                                 new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 0 },
                                 new () { parameter = "idleState", mode = AnimatorConditionMode.Equals, threshold = i },
                             },
+                            hasExitTime = false
                         });
 
                         altIdle.state.AddTransition(new AnimatorStateTransition()
@@ -234,9 +235,15 @@ namespace WoWUnityExtras
                     }
                 }
 
-                defaultIdle.state.behaviours = new StateMachineBehaviour[0];
-                var behaviour = defaultIdle.state.AddStateMachineBehaviour<IdleVariations>();
-                behaviour.idleVariations = idleStates.Count;
+                var hasVariations = false;
+                foreach (var behaviour in defaultIdle.state.behaviours)
+                    hasVariations = hasVariations || behaviour is IdleVariations;
+
+                if(!hasVariations)
+                {
+                    var behaviour = defaultIdle.state.AddStateMachineBehaviour<IdleVariations>();
+                    behaviour.idleVariations = idleStates.Count;
+                }
             }
 
             if (knownStates.TryGetValue("4_0", out var walkState))
@@ -282,7 +289,7 @@ namespace WoWUnityExtras
                     });
                 }
 
-                Debug.LogWarning($"Remember to disable loop time for {deathState.state.name}");
+                Debug.LogWarning($"Remember to set up loop time for the animations.");
             }
 
             AssetDatabase.SaveAssetIfDirty(controller);

@@ -10,15 +10,15 @@ namespace WoWUnityExtras
         [SerializeField]
         public int idleVariations = 1;
         [SerializeField]
-        private float idleVariationChance = 0.1f;
+        private float idleVariationChance = 0.02f;
         [SerializeField]
-        private float checkInterval = 0.5f;
+        private float checkInterval = 0.1f;
 
         private float lastTime = 0;
 
         override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
-            lastTime = 0;
+            lastTime = -checkInterval; // force starting with a check
         }
 
         override public void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
