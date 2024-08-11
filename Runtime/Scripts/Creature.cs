@@ -46,6 +46,8 @@ namespace WoWUnityExtras
         private Vector3 startPosition;
         private float wanderWait;
         private float lastWanderSeconds;
+        private float wanderStuckTime;
+        private Vector2 wanderStuckPos;
 
         void Start()
         {
@@ -164,7 +166,17 @@ namespace WoWUnityExtras
 
             if (isWandering)
             {
-                if (navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
+                var isStuck = false;
+                wanderStuckTime += Time.deltaTime;
+                if (wanderStuckTime >= 0.5)
+                {
+                    wanderStuckTime = 0;
+                    var newWanderStuckPos = new Vector2(transform.position.x, transform.position.z);
+                    isStuck = Mathf.Abs(wanderStuckPos.x - newWanderStuckPos.x) + Mathf.Abs(wanderStuckPos.y - newWanderStuckPos.y) < 0.01f * walkSpeed;
+                    wanderStuckPos = newWanderStuckPos;
+                }
+
+                if (!isStuck && navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
                     InternalMove(walkSpeed * new Vector2(navMeshAgent.desiredVelocity.x, navMeshAgent.desiredVelocity.z));
                 else
                     StopWandering();
