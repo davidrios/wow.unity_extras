@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using WowUnity;
 using WoWUnityExtras.Database;
 
 namespace WoWUnityExtras
@@ -44,8 +45,18 @@ namespace WoWUnityExtras
 
             foreach (var creatureDisplay in creatureDisplays)
             {
-                var textureName = Path.GetFileNameWithoutExtension(creatureDisplay.TextureVariationFileData[0]);
-                var prefabPath = Path.Join(rootDir, $"{creatureDisplay.model.FileData.Replace(".m2", "")}__{textureName}.prefab");
+                string prefabPath;
+
+                if (creatureDisplay.extra != null)
+                {
+                    prefabPath = Path.Join(rootDir, $"{creatureDisplay.model.FileData.Replace(".m2", "")}__base.prefab");
+                }
+                else
+                {
+                    var textureName = Path.GetFileNameWithoutExtension(creatureDisplay.TextureVariationFileData[0]);
+                    prefabPath = Path.Join(rootDir, $"{creatureDisplay.model.FileData.Replace(".m2", "")}__{textureName}.prefab");
+                }
+
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
                 if (prefab == null)
                 {
@@ -64,6 +75,37 @@ namespace WoWUnityExtras
 
                 if (creaturePrefab.TryGetComponent<Creature>(out var creature))
                     creature.creatureName = creatureData.info.name;
+
+                if (creatureDisplay.extra != null)
+                {
+                    var prefixGeo = creaturePrefab.transform.GetChild(0).name;
+                    foreach (var geoset in creatureDisplay.geosets)
+                    {
+                        if (geoset.StartsWith("-"))
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[1..]}")?.gameObject.SetActive(false);
+                        else
+                        {
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1")?.gameObject.SetActive(false);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset}")?.gameObject.SetActive(true);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset}.001")?.gameObject.SetActive(true);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset}.002")?.gameObject.SetActive(true);
+                        }
+                    }
+
+                    var material = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.BakeMaterialResourcesIDFile));
+
+                    var geoset0Obj = creaturePrefab.transform.Find($"{prefixGeo}_Geoset0")?.gameObject;
+                    if (geoset0Obj != null && material != null)
+                    {
+                        var matName = geoset0Obj.GetComponent<Renderer>().sharedMaterial.name;
+                        for (var i = 0; i < creaturePrefab.transform.childCount; i++)
+                        {
+                            var child = creaturePrefab.transform.GetChild(i).gameObject;
+                            if (child.TryGetComponent<Renderer>(out var renderer) && renderer.sharedMaterial.name == matName)
+                                renderer.sharedMaterial = material;
+                        }
+                    }
+                }
 
                 PrefabUtility.SaveAsPrefabAsset(creaturePrefab, creaturePath);
                 UnityEngine.Object.DestroyImmediate(creaturePrefab);

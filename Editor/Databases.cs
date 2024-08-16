@@ -46,6 +46,12 @@ namespace WoWUnityExtras.Database
     }
 
     [Serializable]
+    public class DisplayInfoExtra
+    {
+        public string BakeMaterialResourcesIDFile;
+    }
+
+    [Serializable]
     public class DisplayInfo
     {
         public int ID;
@@ -53,6 +59,8 @@ namespace WoWUnityExtras.Database
         public float CreatureModelScale;
         public List<string> TextureVariationFileData;
         public Model model;
+        public DisplayInfoExtra extra;
+        public List<string> geosets;
     }
 
     [Serializable]
