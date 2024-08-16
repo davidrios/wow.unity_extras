@@ -49,12 +49,12 @@ namespace WoWUnityExtras
 
                 if (creatureDisplay.extra != null)
                 {
-                    prefabPath = Path.Join(rootDir, $"{creatureDisplay.model.FileData.Replace(".m2", "")}__base.prefab");
+                    prefabPath = Path.Join(rootDir, Path.ChangeExtension(creatureDisplay.model.FileData, "prefab"));
                 }
                 else
                 {
                     var textureName = Path.GetFileNameWithoutExtension(creatureDisplay.TextureVariationFileData[0]);
-                    prefabPath = Path.Join(rootDir, $"{creatureDisplay.model.FileData.Replace(".m2", "")}__{textureName}.prefab");
+                    prefabPath = Path.Join(rootDir, Path.ChangeExtension(creatureDisplay.model.FileData, $"__{textureName}.prefab"));
                 }
 
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -65,7 +65,8 @@ namespace WoWUnityExtras
                 }
 
                 var creaturePath = Path.Join(creaturesDir, $"{creatureData.info.entry}_{creatureDisplay.ID}.prefab");
-                var creaturePrefab = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+                var creaturePrefab = PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(creaturePath) ?? prefab) as GameObject;
+
                 creaturePrefab.transform.localScale = creatureDisplay.model.ModelScale * creatureDisplay.CreatureModelScale * Vector3.one;
 
                 {
@@ -117,6 +118,53 @@ namespace WoWUnityExtras
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    var attachmentsPath = Path.Join(rootDir, creatureDisplay.model.FileData.Replace(".m2", "_attachments.json"));
+                    var attachmentsJson = AssetDatabase.LoadAssetAtPath<TextAsset>(attachmentsPath);
+                    if (attachmentsJson != null)
+                    {
+                        void processSlot(string slotKey, int resourceIndex, int boneId)
+                        {
+                            if (creatureDisplay.itemSlots == null || !creatureDisplay.itemSlots.TryGetValue(slotKey, out var slotItem))
+                                return;
+
+                            var equipPrefabPath = Path.ChangeExtension(slotItem.displayInfo.ModelResourcesIDFiles[resourceIndex], "prefab");
+                            var equipPrefab = M2Utility.FindPrefab(Path.Join(rootDir, equipPrefabPath));
+                            if (equipPrefab == null)
+                            {
+                                Debug.Log($"Couldn't find equipment prefab: {equipPrefabPath}");
+                                return;
+                            }
+
+                            var bone = creaturePrefab.GetComponentsInChildren<Transform>().FirstOrDefault(item => item.gameObject.name == $"bone_{boneId}");
+                            if (bone == null)
+                            {
+                                Debug.Log($"Couldn't find bone: {boneId}");
+                                return;
+                            }
+
+                            if (bone.transform.Find("bone_equip") != null) // do nothing if it exists
+                                return;
+
+                            var equipInstance = PrefabUtility.InstantiatePrefab(equipPrefab, bone.transform) as GameObject;
+                            equipInstance.name = "bone_equip";
+                            equipInstance.transform.localRotation = Quaternion.Euler(0f, 180, 0f);
+                            equipInstance.transform.localScale = Vector3.one * 0.01f;
+                            if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
+                                UnityEngine.Object.DestroyImmediate(lodGroup);
+                        }
+
+                        var attachments = JsonConvert.DeserializeObject<ModelAttachments>(attachmentsJson.text).attachments;
+                        foreach (var attachment in attachments)
+                        {
+                            if (attachment.id == 5)
+                                processSlot("1", 1, attachment.bone);
+                            else if (attachment.id == 6)
+                                processSlot("1", 0, attachment.bone);
+                            else if (attachment.id == 11)
+                                processSlot("0", 0, attachment.bone);
                         }
                     }
                 }

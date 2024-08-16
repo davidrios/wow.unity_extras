@@ -46,6 +46,20 @@ namespace WoWUnityExtras.Database
     }
 
     [Serializable]
+    public class ItemDisplayInfo
+    {
+        public List<string> ModelMaterialResourcesIDFiles;
+        public List<string> ModelResourcesIDFiles;
+    }
+
+    [Serializable]
+    public class ItemSlotItem
+    {
+        public int ItemSlot;
+        public ItemDisplayInfo displayInfo;
+    }
+
+    [Serializable]
     public class DisplayInfoExtra
     {
         public string BakeMaterialResourcesIDFile;
@@ -61,6 +75,7 @@ namespace WoWUnityExtras.Database
         public List<string> TextureVariationFileData;
         public Model model;
         public DisplayInfoExtra extra;
+        public Dictionary<string, ItemSlotItem> itemSlots;
         public List<string> geosets;
     }
 
@@ -69,6 +84,19 @@ namespace WoWUnityExtras.Database
     {
         public CreatureTemplateTable info;
         public Dictionary<string, DisplayInfo> displayInfo;
+    }
+
+    [Serializable]
+    public class ModelAttachment
+    {
+        public int id;
+        public int bone;
+    }
+
+    [Serializable]
+    public class ModelAttachments
+    {
+        public List<ModelAttachment> attachments;
     }
 
     [Serializable]
