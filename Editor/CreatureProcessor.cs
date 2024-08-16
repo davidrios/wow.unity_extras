@@ -92,17 +92,31 @@ namespace WoWUnityExtras
                         }
                     }
 
-                    var material = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.BakeMaterialResourcesIDFile));
+                    var material = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.BakeMaterialResourcesIDFile), (uint)MaterialUtility.BlendModes.Opaque);
 
                     var geoset0Obj = creaturePrefab.transform.Find($"{prefixGeo}_Geoset0")?.gameObject;
                     if (geoset0Obj != null && material != null)
                     {
-                        var matName = geoset0Obj.GetComponent<Renderer>().sharedMaterial.name;
+                        var defaultMatName = geoset0Obj.GetComponent<Renderer>().sharedMaterial.name;
                         for (var i = 0; i < creaturePrefab.transform.childCount; i++)
                         {
                             var child = creaturePrefab.transform.GetChild(i).gameObject;
-                            if (child.TryGetComponent<Renderer>(out var renderer) && renderer.sharedMaterial.name == matName)
-                                renderer.sharedMaterial = material;
+                            if (child.TryGetComponent<Renderer>(out var renderer))
+                            {
+                                if (renderer.sharedMaterial.name == defaultMatName)
+                                {
+                                    renderer.sharedMaterial = material;
+                                }
+                                else
+                                {
+                                    if (child.name.StartsWith($"{prefixGeo}_Hair") || child.name.StartsWith($"{prefixGeo}_Facial"))
+                                    {
+                                        var hairMaterial = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.HairTextureFile), (uint)MaterialUtility.BlendModes.AlphaKey);
+                                        if (hairMaterial != null)
+                                            renderer.sharedMaterial = hairMaterial;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
