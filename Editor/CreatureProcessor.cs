@@ -17,6 +17,8 @@ namespace WoWUnityExtras
         public static (CreatureData data, string rootDir, string creaturesDir, List<Database.DisplayInfo> creatureDisplays) ParseCreatureData(TextAsset creatureDataJson)
         {
             var creatureData = JsonConvert.DeserializeObject<CreatureData>(creatureDataJson.text);
+            if (creatureData.displayInfo == null)
+                throw new Exception("Invalid creature JSON");
 
             var fileDir = Path.GetDirectoryName(AssetDatabase.GetAssetPath(creatureDataJson));
             var rootDir = Path.GetDirectoryName(fileDir);
@@ -130,8 +132,8 @@ namespace WoWUnityExtras
                             if (creatureDisplay.itemSlots == null || !creatureDisplay.itemSlots.TryGetValue(slotKey, out var slotItem))
                                 return;
 
-                            var equipPrefabPath = Path.ChangeExtension(slotItem.displayInfo.ModelResourcesIDFiles[resourceIndex], "prefab");
-                            var equipPrefab = M2Utility.FindPrefab(Path.Join(rootDir, equipPrefabPath));
+                            var equipPrefabPath = Path.Join(rootDir, Path.ChangeExtension(slotItem.displayInfo.ModelResourcesIDFiles[resourceIndex], "prefab"));
+                            var equipPrefab = M2Utility.FindPrefab(equipPrefabPath);
                             if (equipPrefab == null)
                             {
                                 Debug.Log($"Couldn't find equipment prefab: {equipPrefabPath}");
@@ -154,6 +156,8 @@ namespace WoWUnityExtras
                             equipInstance.transform.localScale = Vector3.one * 0.01f;
                             if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
                                 UnityEngine.Object.DestroyImmediate(lodGroup);
+
+                            SetupEquipMaterials(equipPrefabPath, equipInstance, slotItem.displayInfo.ModelMaterialResourcesIDFiles[resourceIndex]);
                         }
 
                         var attachments = JsonConvert.DeserializeObject<ModelAttachments>(attachmentsJson.text).attachments;
@@ -172,6 +176,25 @@ namespace WoWUnityExtras
                 PrefabUtility.SaveAsPrefabAsset(creaturePrefab, creaturePath);
                 UnityEngine.Object.DestroyImmediate(creaturePrefab);
             }
+        }
+
+        public static void SetupEquipMaterials(string prefabPath, GameObject instance, string modelTexture)
+        {
+            var equipJson = AssetConversionManager.ReadAssetJson(prefabPath);
+            var metadata = JsonConvert.DeserializeObject<M2Utility.M2>(equipJson);
+
+            if (metadata == null || metadata.textures.Count != 1)
+                return;
+
+            var texture = metadata.textures[0];
+            texture.fileNameExternal = Path.GetFileName(modelTexture);
+            metadata.textures[0] = texture;
+
+            M2Utility.ProcessTextures(metadata.textures, Path.GetDirectoryName(prefabPath));
+            var skinMaterials = MaterialUtility.GetSkinMaterials(metadata);
+
+            foreach (var renderer in instance.GetComponentsInChildren<Renderer>())
+                renderer.sharedMaterial = skinMaterials[0].Item1;
         }
 
         public static Vector3 GetCreaturePosition(CreatureTableRow creatureRow)
