@@ -167,7 +167,11 @@ namespace WoWUnityExtras
                         var attachments = JsonConvert.DeserializeObject<ModelAttachments>(attachmentsJson.text).attachments;
                         foreach (var attachment in attachments)
                         {
-                            if (attachment.id == 5)
+                            if (attachment.id == 1)
+                                processSlot("102", 0, attachment.bone);
+                            else if (attachment.id == 2)
+                                processSlot("104", 0, attachment.bone);
+                            else if (attachment.id == 5)
                                 processSlot("1", 1, attachment.bone);
                             else if (attachment.id == 6)
                                 processSlot("1", 0, attachment.bone);
