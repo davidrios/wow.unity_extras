@@ -157,6 +157,10 @@ namespace WoWUnityExtras
                             if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
                                 UnityEngine.Object.DestroyImmediate(lodGroup);
 
+                            equipInstance.isStatic = false;
+                            foreach (var transform in equipInstance.GetComponentsInChildren<Transform>())
+                                transform.gameObject.isStatic = false;
+
                             SetupEquipMaterials(equipPrefabPath, equipInstance, slotItem.displayInfo.ModelMaterialResourcesIDFiles[resourceIndex]);
                         }
 
