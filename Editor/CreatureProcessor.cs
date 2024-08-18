@@ -13,17 +13,37 @@ using WoWUnityExtras.Database;
 
 namespace WoWUnityExtras
 {
+    enum Race
+    {
+        Human = 1,
+        Dwarf = 3,
+    }
+
+    enum Sex
+    {
+        Male = 0,
+        Female = 1
+    }
+
+    enum EquipSlot
+    {
+        Helm = 0,
+        OHWeapon = 102,
+        Shield = 104
+    }
+
     public class CreatureProcessor
     {
-        // (race, sex) => { (slotKey, resourceIndex) => relativePosition }
-        static readonly Dictionary<(int, int), Dictionary<(string, int), Vector3>> EquipPositions = new() {
+        static readonly Dictionary<(Race, Sex), Dictionary<(EquipSlot, int), Vector3>> EquipPositions = new() {
             {
-                // human male
-                (1, 0), new() {
-                    // 1h weapon
-                    { ("102", 0), new(0.00033f, -0.00035f, 0) },
-                    // shield
-                    { ("104", 0), new(0, 0.00199f, -0.0009f) }
+                (Race.Human, Sex.Male), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0.00033f, -0.00035f, 0) },
+                    { (EquipSlot.Shield, 0), new(0, 0.00199f, -0.0009f) }
+                }
+            },
+            {
+                (Race.Dwarf, Sex.Male), new() {
+                    { (EquipSlot.Helm, 0), new(0.00054f, -0.0001577f, 0) }
                 }
             }
         };
@@ -163,9 +183,9 @@ namespace WoWUnityExtras
                             equipInstance.transform.localRotation = Quaternion.Euler(0f, 180, 0f);
                             equipInstance.transform.localScale = Vector3.one * 0.01f;
 
-                            if (EquipPositions.TryGetValue((creatureDisplay.extra.DisplayRaceID, creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
+                            if (EquipPositions.TryGetValue(((Race)creatureDisplay.extra.DisplayRaceID, (Sex)creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
                             {
-                                if (slotPositionMap.TryGetValue((slotKey, resourceIndex), out var localPosition))
+                                if (slotPositionMap.TryGetValue(((EquipSlot)int.Parse(slotKey), resourceIndex), out var localPosition))
                                     equipInstance.transform.localPosition = localPosition;
                             }
 
