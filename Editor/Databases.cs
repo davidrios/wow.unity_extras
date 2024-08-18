@@ -71,6 +71,8 @@ namespace WoWUnityExtras.Database
     [Serializable]
     public class DisplayInfoExtra
     {
+        public int DisplayRaceID;
+        public int DisplaySexID;
         public string BakeMaterialResourcesIDFile;
         public string HairTextureFile;
     }

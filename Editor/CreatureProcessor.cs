@@ -15,6 +15,19 @@ namespace WoWUnityExtras
 {
     public class CreatureProcessor
     {
+        // (race, sex) => { (slotKey, resourceIndex) => relativePosition }
+        static readonly Dictionary<(int, int), Dictionary<(string, int), Vector3>> EquipPositions = new() {
+            {
+                // human male
+                (1, 0), new() {
+                    // 1h weapon
+                    { ("102", 0), new(0.00033f, -0.00035f, 0) },
+                    // shield
+                    { ("104", 0), new(0, 0.00199f, -0.0009f) }
+                }
+            }
+        };
+
         public static (CreatureData data, string rootDir, string creaturesDir, List<Database.DisplayInfo> creatureDisplays) ParseCreatureData(TextAsset creatureDataJson)
         {
             var creatureData = JsonConvert.DeserializeObject<CreatureData>(creatureDataJson.text);
@@ -149,6 +162,13 @@ namespace WoWUnityExtras
                             equipInstance.name = "bone_equip";
                             equipInstance.transform.localRotation = Quaternion.Euler(0f, 180, 0f);
                             equipInstance.transform.localScale = Vector3.one * 0.01f;
+
+                            if (EquipPositions.TryGetValue((creatureDisplay.extra.DisplayRaceID, creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
+                            {
+                                if (slotPositionMap.TryGetValue((slotKey, resourceIndex), out var localPosition))
+                                    equipInstance.transform.localPosition = localPosition;
+                            }
+
                             if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
                                 UnityEngine.Object.DestroyImmediate(lodGroup);
 
