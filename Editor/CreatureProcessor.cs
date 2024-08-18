@@ -17,6 +17,7 @@ namespace WoWUnityExtras
     {
         Human = 1,
         Dwarf = 3,
+        Scourge = 5
     }
 
     enum Sex
@@ -28,6 +29,7 @@ namespace WoWUnityExtras
     enum EquipSlot
     {
         Helm = 0,
+        Shoulder = 1,
         OHWeapon = 102,
         Shield = 104
     }
@@ -44,6 +46,12 @@ namespace WoWUnityExtras
             {
                 (Race.Dwarf, Sex.Male), new() {
                     { (EquipSlot.Helm, 0), new(0.00054f, -0.0001577f, 0) }
+                }
+            },
+            {
+                (Race.Scourge, Sex.Male), new() {
+                    { (EquipSlot.Shoulder, 0), new(-0.0004f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-0.00049f, 0, 0) }
                 }
             }
         };
@@ -90,7 +98,11 @@ namespace WoWUnityExtras
                 else
                 {
                     var textureName = Path.GetFileNameWithoutExtension(creatureDisplay.TextureVariationFileData[0]);
-                    prefabPath = Path.Join(rootDir, Path.ChangeExtension(creatureDisplay.model.FileData, $"__{textureName}.prefab"));
+                    prefabPath = Path.Join(
+                        rootDir,
+                        Path.GetDirectoryName(creatureDisplay.model.FileData),
+                        $"{Path.GetFileNameWithoutExtension(creatureDisplay.model.FileData)}__{textureName}.prefab"
+                    );
                 }
 
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
