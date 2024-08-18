@@ -79,8 +79,13 @@ namespace WoWUnityExtras
             selectedJson = EditorGUILayout.ObjectField("Creature Data JSON: ", selectedJson, typeof(TextAsset), false) as TextAsset;
             if (selectedJson != null)
             {
-                if (GUILayout.Button("Create Prefabs"))
+                GUILayout.Space(5);
+                if (GUILayout.Button("Create Prefabs with Sounds"))
                     CreatureProcessor.CreateCreaturePrefabsFromTemplate(selectedJson);
+
+                GUILayout.Space(5);
+                if (GUILayout.Button("Create Only SoundKits"))
+                    CreatureProcessor.GetOrCreateSoundKits(selectedJson);
             }
 
             GUILayout.Space(10);

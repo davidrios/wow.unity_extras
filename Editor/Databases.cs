@@ -36,6 +36,14 @@ namespace WoWUnityExtras.Database
     }
 
     [Serializable]
+    public class ModelSound
+    {
+        public int SoundDeathID;
+        public int SoundWingFlapID;
+        public List<int> SoundFidget;
+    }
+
+    [Serializable]
     public class Model
     {
         public List<float> GeoBox;
@@ -43,6 +51,7 @@ namespace WoWUnityExtras.Database
         public float CollisionHeight;
         public float ModelScale;
         public string FileData;
+        public ModelSound sound;
     }
 
     [Serializable]
@@ -84,6 +93,7 @@ namespace WoWUnityExtras.Database
     {
         public CreatureTemplateTable info;
         public Dictionary<string, DisplayInfo> displayInfo;
+        public Dictionary<string, SoundKit> soundKit;
     }
 
     [Serializable]
@@ -97,6 +107,23 @@ namespace WoWUnityExtras.Database
     public class ModelAttachments
     {
         public List<ModelAttachment> attachments;
+    }
+
+    [Serializable]
+    public class SoundKitEntry
+    {
+        public float Volume;
+        public string FileData;
+    }
+
+    [Serializable]
+    public class SoundKit
+    {
+        public int ID;
+        public float VolumeFloat;
+        public float MinDistance;
+        public float DistanceCutoff;
+        public List<SoundKitEntry> entries;
     }
 
     [Serializable]

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -181,6 +182,35 @@ namespace WoWUnityExtras
                     }
                 }
 
+                if (creatureDisplay.model.sound != null)
+                {
+                    var creatureSounds = creaturePrefab.GetOrAddComponent<CreatureSounds>();
+                    var soundKits = GetOrCreateSoundKits(jsonAsset);
+                    if (soundKits != null)
+                    {
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundDeathID, out var deathSound))
+                            creatureSounds.SetDeath(deathSound);
+
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundWingFlapID, out var wingFlapSound))
+                            creatureSounds.SetWingFlap(wingFlapSound);
+
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundFidget[0], out var fidget1Sound))
+                            creatureSounds.SetFidget1(fidget1Sound);
+
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundFidget[1], out var fidget2Sound))
+                            creatureSounds.SetFidget2(fidget2Sound);
+
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundFidget[2], out var fidget3Sound))
+                            creatureSounds.SetFidget3(fidget3Sound);
+
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundFidget[3], out var fidget4Sound))
+                            creatureSounds.SetFidget4(fidget4Sound);
+
+                        if (soundKits.TryGetValue(creatureDisplay.model.sound.SoundFidget[4], out var fidget5Sound))
+                            creatureSounds.SetFidget5(fidget5Sound);
+                    }
+                }
+
                 PrefabUtility.SaveAsPrefabAsset(creaturePrefab, creaturePath);
                 UnityEngine.Object.DestroyImmediate(creaturePrefab);
             }
@@ -203,6 +233,86 @@ namespace WoWUnityExtras
 
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>())
                 renderer.sharedMaterial = skinMaterials[0].Item1;
+        }
+
+        public static Dictionary<int, GameObject> GetOrCreateSoundKits(TextAsset jsonAsset)
+        {
+            var creatureData = JsonConvert.DeserializeObject<CreatureData>(jsonAsset.text);
+            if (creatureData.displayInfo == null)
+                throw new Exception("Invalid creature JSON");
+
+            if (creatureData.soundKit == null)
+                return null;
+
+            var rootDir = Path.GetDirectoryName(Path.GetDirectoryName(AssetDatabase.GetAssetPath(jsonAsset)));
+
+            var soundKitPrefabs = new Dictionary<int, GameObject>();
+
+            foreach (var (_, soundKit) in creatureData.soundKit)
+            {
+                if (soundKit.entries.Count == 0)
+                    continue;
+
+                var firstEntry = soundKit.entries[0];
+                if (!File.Exists(Path.Join(rootDir, firstEntry.FileData)))
+                    continue;
+
+                var basePath = Path.Join(rootDir, Path.GetDirectoryName(firstEntry.FileData));
+
+                string currentName = Path.GetFileNameWithoutExtension(firstEntry.FileData);
+
+                foreach (var entry in soundKit.entries)
+                {
+                    var name = Path.GetFileNameWithoutExtension(entry.FileData);
+
+                    var index = 0;
+                    for (; index < currentName.Length && index < name.Length && currentName[index] == name[index]; index++) { }
+
+                    currentName = name[..index];
+                }
+
+                GameObject soundKitPrefab;
+                var path = Path.Join(basePath, currentName + ".prefab");
+                if (File.Exists(path))
+                {
+                    soundKitPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    if (soundKitPrefab != null)
+                        soundKitPrefabs[soundKit.ID] = soundKitPrefab;
+
+                    continue;
+                }
+
+                var soundKitObj = new GameObject(currentName);
+                foreach (var entry in soundKit.entries)
+                {
+                    var audio = soundKitObj.AddComponent<AudioSource>();
+                    audio.clip = AssetDatabase.LoadAssetAtPath<AudioClip>(Path.Join(rootDir, entry.FileData));
+                    audio.volume = entry.Volume * soundKit.VolumeFloat;
+                    audio.playOnAwake = false;
+                    audio.spatialBlend = 1;
+                    audio.rolloffMode = AudioRolloffMode.Custom;
+                    var keys = new Keyframe[4]
+                    {
+                        new () { value = 1, time = soundKit.MinDistance / soundKit.DistanceCutoff, inTangent = -5.627249f, outTangent = -5.627249f },
+                        new () { value = 0.4748f, time = 0.3555555f, outWeight = 0.389182f, inTangent = -1.583532f, outTangent = -1.583532f },
+                        new () { value = 0.1702f, time = 0.64f, outWeight = 0.601159f, inTangent = -0.810969f, outTangent = -0.810969f },
+                        new () { value = 0, time = 1, inTangent = -0.177848f, outTangent = -0.177848f },
+                    };
+                    var newCurve = new AnimationCurve(keys);
+                    audio.SetCustomCurve(AudioSourceCurveType.CustomRolloff, newCurve);
+                    audio.maxDistance = soundKit.DistanceCutoff;
+
+                    soundKitObj.AddComponent<SoundKit>();
+                }
+
+                soundKitPrefab = PrefabUtility.SaveAsPrefabAsset(soundKitObj, path);
+                AssetDatabase.SaveAssets();
+                UnityEngine.Object.DestroyImmediate(soundKitObj);
+
+                soundKitPrefabs[soundKit.ID] = soundKitPrefab;
+            }
+
+            return soundKitPrefabs;
         }
 
         public static Vector3 GetCreaturePosition(CreatureTableRow creatureRow)
