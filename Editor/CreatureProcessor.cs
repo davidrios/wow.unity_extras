@@ -86,42 +86,36 @@ namespace WoWUnityExtras
                     foreach (var geoset in creatureDisplay.geosets)
                     {
                         if (geoset.StartsWith("-"))
+                        {
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset[1..]}")?.gameObject.SetActive(false);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[1..]}.001")?.gameObject.SetActive(false);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[1..]}.002")?.gameObject.SetActive(false);
+                        }
                         else
                         {
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1")?.gameObject.SetActive(false);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1.001")?.gameObject.SetActive(false);
+                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1.002")?.gameObject.SetActive(false);
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset}")?.gameObject.SetActive(true);
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset}.001")?.gameObject.SetActive(true);
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset}.002")?.gameObject.SetActive(true);
                         }
                     }
 
-                    var material = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.BakeMaterialResourcesIDFile), (uint)MaterialUtility.BlendModes.Opaque);
+                    var bodyMaterial = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.BakeMaterialResourcesIDFile), (uint)MaterialUtility.BlendModes.Opaque);
+                    var hairMaterial = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.HairTextureFile), (uint)MaterialUtility.BlendModes.AlphaKey);
 
-                    var geoset0Obj = creaturePrefab.transform.Find($"{prefixGeo}_Geoset0")?.gameObject;
-                    if (geoset0Obj != null && material != null)
+                    for (var i = 0; i < creaturePrefab.transform.childCount; i++)
                     {
-                        var defaultMatName = geoset0Obj.GetComponent<Renderer>().sharedMaterial.name;
-                        for (var i = 0; i < creaturePrefab.transform.childCount; i++)
-                        {
-                            var child = creaturePrefab.transform.GetChild(i).gameObject;
-                            if (child.TryGetComponent<Renderer>(out var renderer))
-                            {
-                                if (renderer.sharedMaterial.name == defaultMatName)
-                                {
-                                    renderer.sharedMaterial = material;
-                                }
-                                else
-                                {
-                                    if (child.name.StartsWith($"{prefixGeo}_Hair") || child.name.StartsWith($"{prefixGeo}_Facial"))
-                                    {
-                                        var hairMaterial = MaterialUtility.GetBasicMaterial(Path.Join(rootDir, creatureDisplay.extra.HairTextureFile), (uint)MaterialUtility.BlendModes.AlphaKey);
-                                        if (hairMaterial != null)
-                                            renderer.sharedMaterial = hairMaterial;
-                                    }
-                                }
-                            }
-                        }
+                        var child = creaturePrefab.transform.GetChild(i).gameObject;
+                        if (!child.TryGetComponent<Renderer>(out var renderer))
+                            continue;
+
+                        if (renderer.sharedMaterial.name == "body" && bodyMaterial != null)
+                            renderer.sharedMaterial = bodyMaterial;
+
+                        if (renderer.sharedMaterial.name == "hair" && hairMaterial != null)
+                            renderer.sharedMaterial = hairMaterial;
                     }
 
                     var attachmentsPath = Path.Join(rootDir, creatureDisplay.model.FileData.Replace(".m2", "_attachments.json"));
