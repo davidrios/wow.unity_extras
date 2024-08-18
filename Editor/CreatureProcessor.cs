@@ -162,69 +162,69 @@ namespace WoWUnityExtras
                         if (renderer.sharedMaterial.name == "hair" && hairMaterial != null)
                             renderer.sharedMaterial = hairMaterial;
                     }
+                }
 
-                    var attachmentsPath = Path.Join(rootDir, creatureDisplay.model.FileData.Replace(".m2", "_attachments.json"));
-                    var attachmentsJson = AssetDatabase.LoadAssetAtPath<TextAsset>(attachmentsPath);
-                    if (attachmentsJson != null)
+                var attachmentsPath = Path.Join(rootDir, creatureDisplay.model.FileData.Replace(".m2", "_attachments.json"));
+                var attachmentsJson = AssetDatabase.LoadAssetAtPath<TextAsset>(attachmentsPath);
+                if (attachmentsJson != null)
+                {
+                    void processSlot(string slotKey, int resourceIndex, int boneId)
                     {
-                        void processSlot(string slotKey, int resourceIndex, int boneId)
+                        if (creatureDisplay.itemSlots == null || !creatureDisplay.itemSlots.TryGetValue(slotKey, out var slotItem))
+                            return;
+
+                        var equipPrefabPath = Path.Join(rootDir, Path.ChangeExtension(slotItem.displayInfo.ModelResourcesIDFiles[resourceIndex], "prefab"));
+                        var equipPrefab = M2Utility.FindPrefab(equipPrefabPath);
+                        if (equipPrefab == null)
                         {
-                            if (creatureDisplay.itemSlots == null || !creatureDisplay.itemSlots.TryGetValue(slotKey, out var slotItem))
-                                return;
-
-                            var equipPrefabPath = Path.Join(rootDir, Path.ChangeExtension(slotItem.displayInfo.ModelResourcesIDFiles[resourceIndex], "prefab"));
-                            var equipPrefab = M2Utility.FindPrefab(equipPrefabPath);
-                            if (equipPrefab == null)
-                            {
-                                Debug.Log($"Couldn't find equipment prefab: {equipPrefabPath}");
-                                return;
-                            }
-
-                            var bone = creaturePrefab.GetComponentsInChildren<Transform>().FirstOrDefault(item => item.gameObject.name == $"bone_{boneId}");
-                            if (bone == null)
-                            {
-                                Debug.Log($"Couldn't find bone: {boneId}");
-                                return;
-                            }
-
-                            if (bone.transform.Find("bone_equip") != null) // do nothing if it exists
-                                return;
-
-                            var equipInstance = PrefabUtility.InstantiatePrefab(equipPrefab, bone.transform) as GameObject;
-                            equipInstance.name = "bone_equip";
-                            equipInstance.transform.localRotation = Quaternion.Euler(0f, 180, 0f);
-                            equipInstance.transform.localScale = Vector3.one * 0.01f;
-
-                            if (EquipPositions.TryGetValue(((Race)creatureDisplay.extra.DisplayRaceID, (Sex)creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
-                            {
-                                if (slotPositionMap.TryGetValue(((EquipSlot)int.Parse(slotKey), resourceIndex), out var localPosition))
-                                    equipInstance.transform.localPosition = localPosition;
-                            }
-
-                            if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
-                                UnityEngine.Object.DestroyImmediate(lodGroup);
-
-                            equipInstance.isStatic = false;
-                            foreach (var transform in equipInstance.GetComponentsInChildren<Transform>())
-                                transform.gameObject.isStatic = false;
-
-                            SetupEquipMaterials(equipPrefabPath, equipInstance, slotItem.displayInfo.ModelMaterialResourcesIDFiles[resourceIndex]);
+                            Debug.Log($"Couldn't find equipment prefab: {equipPrefabPath}");
+                            return;
                         }
 
-                        var attachments = JsonConvert.DeserializeObject<ModelAttachments>(attachmentsJson.text).attachments;
-                        foreach (var attachment in attachments)
+                        var bone = creaturePrefab.GetComponentsInChildren<Transform>().FirstOrDefault(item => item.gameObject.name == $"bone_{boneId}");
+                        if (bone == null)
                         {
-                            if (attachment.id == 1)
-                                processSlot("102", 0, attachment.bone);
-                            else if (attachment.id == 2)
-                                processSlot("104", 0, attachment.bone);
-                            else if (attachment.id == 5)
-                                processSlot("1", 1, attachment.bone);
-                            else if (attachment.id == 6)
-                                processSlot("1", 0, attachment.bone);
-                            else if (attachment.id == 11)
-                                processSlot("0", 0, attachment.bone);
+                            Debug.Log($"Couldn't find bone: {boneId}");
+                            return;
                         }
+
+                        if (bone.transform.Find("bone_equip") != null) // do nothing if it exists
+                            return;
+
+                        var equipInstance = PrefabUtility.InstantiatePrefab(equipPrefab, bone.transform) as GameObject;
+                        equipInstance.name = "bone_equip";
+                        equipInstance.transform.localRotation = Quaternion.Euler(0f, 180, 0f);
+                        equipInstance.transform.localScale = Vector3.one * 0.01f;
+
+                        if (creatureDisplay.extra != null && EquipPositions.TryGetValue(((Race)creatureDisplay.extra.DisplayRaceID, (Sex)creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
+                        {
+                            if (slotPositionMap.TryGetValue(((EquipSlot)int.Parse(slotKey), resourceIndex), out var localPosition))
+                                equipInstance.transform.localPosition = localPosition;
+                        }
+
+                        if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
+                            UnityEngine.Object.DestroyImmediate(lodGroup);
+
+                        equipInstance.isStatic = false;
+                        foreach (var transform in equipInstance.GetComponentsInChildren<Transform>())
+                            transform.gameObject.isStatic = false;
+
+                        SetupEquipMaterials(equipPrefabPath, equipInstance, slotItem.displayInfo.ModelMaterialResourcesIDFiles[resourceIndex]);
+                    }
+
+                    var attachments = JsonConvert.DeserializeObject<ModelAttachments>(attachmentsJson.text).attachments;
+                    foreach (var attachment in attachments)
+                    {
+                        if (attachment.id == 1)
+                            processSlot("102", 0, attachment.bone);
+                        else if (attachment.id == 2)
+                            processSlot("104", 0, attachment.bone);
+                        else if (attachment.id == 5)
+                            processSlot("1", 1, attachment.bone);
+                        else if (attachment.id == 6)
+                            processSlot("1", 0, attachment.bone);
+                        else if (attachment.id == 11)
+                            processSlot("0", 0, attachment.bone);
                     }
                 }
 
