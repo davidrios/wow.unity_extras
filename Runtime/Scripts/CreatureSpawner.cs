@@ -126,7 +126,7 @@ namespace WoWUnityExtras
 
             var inRange = Vector3.Distance(transform.position, playerTransform.position) < sharedSettings.spawnDistance;
 
-            if (inRange && alive.go == null && Time.realtimeSinceStartup - timeOfDeath > spawnTime)
+            if (inRange && alive.go == null && (Time.realtimeSinceStartup - timeOfDeath > spawnTime || timeOfDeath == 0))
             {
                 var aliveI = Instantiate(prefabs[Random.Range(0, prefabs.Count)], transform);
                 alive = (aliveI, aliveI.GetComponent<Creature>());

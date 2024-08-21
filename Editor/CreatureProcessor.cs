@@ -402,7 +402,7 @@ namespace WoWUnityExtras
             Debug.Log($"ids: ...\n{String.Join("\n", idsS)}");
         }
 
-        public static void PlaceCreatureSpawners(TextAsset creatureTableJson, GameObject mapArea, GameObject target, int mapId, TextAsset creatureDataJson, bool randomRotation = true)
+        public static void PlaceCreatureSpawners(TextAsset creatureTableJson, GameObject mapArea, GameObject target, int mapId, TextAsset creatureDataJson, CreatureSpawnerSettings creatureSpawnerSettings, bool randomRotation = true)
         {
             var (creatureData, _, creaturesDir, creatureDisplays) = ParseCreatureData(creatureDataJson);
 
@@ -446,6 +446,7 @@ namespace WoWUnityExtras
 
                 var spawnerComponent = spawner.AddComponent<CreatureSpawner>();
                 spawnerComponent.spawnTime = creatureRow.spawntimesecs;
+                spawnerComponent.sharedSettings = creatureSpawnerSettings;
 
                 foreach (var prefab in prefabs)
                 {

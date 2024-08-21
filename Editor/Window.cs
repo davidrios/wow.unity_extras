@@ -14,6 +14,7 @@ namespace WoWUnityExtras
         private TextAsset spawnCreatureDataJson;
         private GameObject spawnMapReference;
         private int spawnMapId;
+        private CreatureSpawnerSettings creatureSpawnerSettings;
 
         private AnimatorController animationController;
 
@@ -117,6 +118,8 @@ namespace WoWUnityExtras
                     spawnCreatureDataJson = null;
             }
 
+            creatureSpawnerSettings = EditorGUILayout.ObjectField("CreatureSpawnerSettings", creatureSpawnerSettings, typeof(CreatureSpawnerSettings), false) as CreatureSpawnerSettings;
+
             if (selectedGameObject == null)
             {
                 GUILayout.Label("Select a game object to place the spawners in.");
@@ -125,10 +128,10 @@ namespace WoWUnityExtras
             {
                 GUILayout.Label($"Place in game object: {selectedGameObject.name}");
 
-                if (creatureSpawnJson != null && spawnMapReference != null)
+                if (creatureSpawnJson != null && spawnMapReference != null && creatureSpawnerSettings != null)
                 {
                     if (GUILayout.Button("Place Spawners"))
-                        CreatureProcessor.PlaceCreatureSpawners(creatureSpawnJson, spawnMapReference, selectedGameObject, spawnMapId, spawnCreatureDataJson);
+                        CreatureProcessor.PlaceCreatureSpawners(creatureSpawnJson, spawnMapReference, selectedGameObject, spawnMapId, spawnCreatureDataJson, creatureSpawnerSettings);
                 }
             }
 
