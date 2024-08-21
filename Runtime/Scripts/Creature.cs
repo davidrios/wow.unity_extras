@@ -21,20 +21,18 @@ namespace WoWUnityExtras
 
         public string creatureName;
 
-        [SerializeField]
-        private float walkSpeed = 1;
+        [SerializeField] private float walkSpeed = 1;
+
+        [SerializeField] private bool keepOrientation = false;
+        private float originalOrientation;
 
         public float wanderRange = 0;
         public float wanderMinDistance = 2;
-        [SerializeField]
-        private float wanderNowaitChance = 0.2f;
-        [SerializeField]
-        private float wanderMinWait = 5;
-        [SerializeField]
-        private float wanderMaxWait = 5;
+        [SerializeField] private float wanderNowaitChance = 0.2f;
+        [SerializeField] private float wanderMinWait = 5;
+        [SerializeField] private float wanderMaxWait = 5;
 
-        [SerializeField]
-        private bool alignToTerrain = false;
+        [SerializeField] private bool alignToTerrain = false;
         private GameObject alignToTerrainTarget;
 
         private CharacterController characterController;
@@ -69,6 +67,8 @@ namespace WoWUnityExtras
                 navMeshAgent.stoppingDistance = 0.5f;
 
             startPosition = gameObject.transform.position;
+
+            originalOrientation = gameObject.transform.localRotation.eulerAngles.y;
         }
 
         void Update()
@@ -124,12 +124,21 @@ namespace WoWUnityExtras
             if (creatureState == CreatureState.Dead)
                 return;
 
-            if (direction.x == 0 && direction.z == 0 && direction.y == -1)
+            var currentOrientation = keepOrientation ? gameObject.transform.localEulerAngles.y : 0;
+
+            if (direction.x == 0 && direction.z == 0 && direction.y == -1 && currentOrientation == originalOrientation)
                 return;
 
-            var targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-            var angle = Mathf.SmoothDampAngle(transform.eulerAngles.y - 90, targetAngle, ref turnVelocity, smoothTurnTime);
-            transform.rotation = Quaternion.Euler(0, angle + 90, 0);
+            if (creatureState == CreatureState.Idle && keepOrientation && currentOrientation != originalOrientation)
+            {
+                var angle = Mathf.SmoothDampAngle(transform.localEulerAngles.y, originalOrientation, ref turnVelocity, smoothTurnTime);
+                transform.localRotation = Quaternion.Euler(0, angle, 0);
+            }
+            else {
+                var targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+                var angle = Mathf.SmoothDampAngle(transform.eulerAngles.y - 90, targetAngle, ref turnVelocity, smoothTurnTime);
+                transform.rotation = Quaternion.Euler(0, angle + 90, 0);
+            }
         }
 
         void AlignToTerrain()
