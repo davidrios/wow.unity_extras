@@ -196,9 +196,11 @@ namespace WoWUnityExtras
                         equipInstance.transform.localRotation = Quaternion.Euler(0f, 180, 0f);
                         equipInstance.transform.localScale = Vector3.one * 0.01f;
 
+                        var equipSlot = (EquipSlot)int.Parse(slotKey);
+
                         if (creatureDisplay.extra != null && EquipPositions.TryGetValue(((Race)creatureDisplay.extra.DisplayRaceID, (Sex)creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
                         {
-                            if (slotPositionMap.TryGetValue(((EquipSlot)int.Parse(slotKey), resourceIndex), out var localPosition))
+                            if (slotPositionMap.TryGetValue((equipSlot, resourceIndex), out var localPosition))
                                 equipInstance.transform.localPosition = localPosition;
                         }
 
@@ -208,6 +210,20 @@ namespace WoWUnityExtras
                         equipInstance.isStatic = false;
                         foreach (var transform in equipInstance.GetComponentsInChildren<Transform>())
                             transform.gameObject.isStatic = false;
+
+                        if (creaturePrefab.TryGetComponent<CreatureAnimation>(out var creatureAnimation))
+                        {
+                            creatureAnimation.rightHandClosed = creatureAnimation.rightHandClosed || equipSlot switch
+                            {
+                                EquipSlot.OHWeapon => true,
+                                _ => false
+                            };
+
+                            creatureAnimation.leftHandClosed = creatureAnimation.leftHandClosed || equipSlot switch {
+                                EquipSlot.Shield => true,
+                                _ => false
+                            };
+                        }
 
                         SetupEquipMaterials(equipPrefabPath, equipInstance, slotItem.displayInfo.ModelMaterialResourcesIDFiles[resourceIndex]);
                     }
@@ -500,10 +516,45 @@ namespace WoWUnityExtras
         public static void SetupAnimations(AnimatorController controller)
         {
             var hasMissing = false;
-            controller.parameters = new AnimatorControllerParameter[2] {
+            controller.parameters = new AnimatorControllerParameter[4] {
                 new() { name = "state", type = AnimatorControllerParameterType.Int },
                 new() { name = "idleState", type = AnimatorControllerParameterType.Int },
+                new() { name = "leftHandClosed", type = AnimatorControllerParameterType.Bool },
+                new() { name = "rightHandClosed", type = AnimatorControllerParameterType.Bool },
             };
+
+            var hasLeftHand = false;
+            var hasRightHand = false;
+            var hasBlink = false;
+            foreach (var layer in controller.layers)
+            {
+                hasLeftHand = hasLeftHand || layer.name == "leftHandClosed";
+                hasRightHand = hasRightHand || layer.name == "rightHandClosed";
+                hasBlink = hasBlink || layer.name == "blink";
+            }
+
+            if (!hasLeftHand)
+            {
+                controller.AddLayer("leftHandClosed");
+                var layer = controller.layers.First(layer => layer.name == "leftHandClosed");
+                layer.defaultWeight = 1;
+                layer.stateMachine.AddState("Empty");
+            }
+
+            if (!hasRightHand)
+            {
+                controller.AddLayer("rightHandClosed");
+                var layer = controller.layers.First(layer => layer.name == "rightHandClosed");
+                layer.defaultWeight = 1;
+                layer.stateMachine.AddState("Empty");
+            }
+
+            if (!hasBlink)
+            {
+                controller.AddLayer("blink");
+                var layer = controller.layers.First(layer => layer.name == "blink");
+                layer.defaultWeight = 1;
+            }
 
             Dictionary<string, ChildAnimatorState> knownStates = new();
             foreach (var state in controller.layers[0].stateMachine.states)

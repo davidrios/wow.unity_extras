@@ -12,12 +12,20 @@ namespace WoWUnityExtras
     [RequireComponent(typeof(Animator))]
     public class CreatureAnimation : MonoBehaviour
     {
+        public bool leftHandClosed = false;
+        public bool rightHandClosed = false;
+
         private Animator animator;
         private CreatureAnimationState currentState;
 
         void Start()
         {
             animator = GetComponent<Animator>();
+            if (leftHandClosed || rightHandClosed)
+            {
+                animator.SetBool("leftHandClosed", leftHandClosed);
+                animator.SetBool("rightHandClosed", rightHandClosed);
+            }
         }
 
         private void SetState(CreatureAnimationState state)
