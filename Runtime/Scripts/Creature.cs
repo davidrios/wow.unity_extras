@@ -33,6 +33,10 @@ namespace WoWUnityExtras
         [SerializeField]
         private float wanderMaxWait = 5;
 
+        [SerializeField]
+        private bool alignToTerrain = false;
+        private GameObject alignToTerrainTarget;
+
         private CharacterController characterController;
         private CreatureAnimation creatureAnimation;
         private CreatureState creatureState;
@@ -75,6 +79,9 @@ namespace WoWUnityExtras
             ApplyGravity();
             ApplyMovement();
             ApplyRotation();
+
+            if (alignToTerrain)
+                AlignToTerrain();
         }
 
         void ApplyGravity()
@@ -123,6 +130,18 @@ namespace WoWUnityExtras
             var targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
             var angle = Mathf.SmoothDampAngle(transform.eulerAngles.y - 90, targetAngle, ref turnVelocity, smoothTurnTime);
             transform.rotation = Quaternion.Euler(0, angle + 90, 0);
+        }
+
+        void AlignToTerrain()
+        {
+            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, -transform.up, out var hit, 1))
+            {
+                if (alignToTerrainTarget == null)
+                    alignToTerrainTarget = transform.GetChild(0).gameObject;
+
+                Quaternion targetRotation = Quaternion.FromToRotation(alignToTerrainTarget.transform.up, hit.normal) * alignToTerrainTarget.transform.rotation * Quaternion.Euler(-90, 0, 0);
+                alignToTerrainTarget.transform.rotation = targetRotation;
+            }
         }
 
         void Wander()
