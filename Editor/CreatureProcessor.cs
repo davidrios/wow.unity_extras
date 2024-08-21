@@ -219,7 +219,8 @@ namespace WoWUnityExtras
                                 _ => false
                             };
 
-                            creatureAnimation.leftHandClosed = creatureAnimation.leftHandClosed || equipSlot switch {
+                            creatureAnimation.leftHandClosed = creatureAnimation.leftHandClosed || equipSlot switch
+                            {
                                 EquipSlot.Shield => true,
                                 _ => false
                             };
@@ -487,21 +488,63 @@ namespace WoWUnityExtras
 
             if (!hasTransition)
             {
-                var conditions = templateTransition.conditions;
-                templateTransition.conditions = new AnimatorCondition[0];
-                foreach (var condition in conditions)
-                    templateTransition.AddCondition(condition.mode, condition.threshold, condition.parameter);
-
-                source.AddTransition(templateTransition);
-                if (AssetDatabase.GetAssetPath(source) != "")
-                    AssetDatabase.AddObjectToAsset(templateTransition, AssetDatabase.GetAssetPath(source));
-
-                templateTransition.hideFlags = HideFlags.HideInHierarchy;
+                var transition = source.AddTransition(templateTransition.destinationState);
+                transition.hasExitTime = templateTransition.hasExitTime;
+                transition.name = templateTransition.name;
+                foreach (var condition in templateTransition.conditions)
+                {
+                    transition.AddCondition(condition.mode, condition.threshold, condition.parameter);
+                }
             }
+        }
+
+        static (string, string) GetIdVariation(string name)
+        {
+            var match = Regex.Match(name, @"^.+ID (\d+) variation (\d+)");
+            if (!match.Success)
+                return (null, null);
+
+            var id = match.Groups[1].Value;
+            var variation = match.Groups[2].Value;
+
+            return id switch
+            {
+                "0" or "1" or "4" => (id, variation),
+                _ => (null, null),
+            };
         }
 
         public static void SetupAnimations(AnimatorController controller)
         {
+            Dictionary<string, string> animationPaths = new();
+
+            var assetPath = AssetDatabase.GetAssetPath(controller);
+            if (assetPath != null)
+            {
+                foreach (var path in Directory.GetFiles(Path.GetDirectoryName(assetPath), $"{Path.GetFileNameWithoutExtension(assetPath).TrimEnd("_")}_*.anim"))
+                {
+                    var stateName = Path.GetFileNameWithoutExtension(path);
+                    var nameLower = stateName.ToLower();
+                    var (id, variation) = GetIdVariation(stateName);
+                    if (id != null)
+                    {
+                        var key = $"{id}_{variation}";
+                        animationPaths[key] = path;
+                    }
+                    else if (nameLower.Contains("handsclosed"))
+                    {
+                        if (nameLower.Contains("left"))
+                            animationPaths["leftHand"] = path;
+                        else
+                            animationPaths["rightHand"] = path;
+                    }
+                    else if (nameLower.Contains("blink"))
+                    {
+                        animationPaths["blink"] = path;
+                    }
+                }
+            }
+
             controller.parameters = new AnimatorControllerParameter[4] {
                 new() { name = "state", type = AnimatorControllerParameterType.Int },
                 new() { name = "idleState", type = AnimatorControllerParameterType.Int },
@@ -523,8 +566,19 @@ namespace WoWUnityExtras
             {
                 controller.AddLayer("leftHandClosed");
                 var layer = controller.layers.First(layer => layer.name == "leftHandClosed");
+                layer.blendingMode = AnimatorLayerBlendingMode.Override;
                 layer.defaultWeight = 1;
                 layer.stateMachine.AddState("Empty");
+                if (animationPaths.TryGetValue("leftHand", out var path))
+                {
+                    var newState = layer.stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
+                    newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                    var trans = newState.AddTransition(layer.stateMachine.states[0].state);
+                    trans.AddCondition(AnimatorConditionMode.IfNot, 0, "leftHandClosed");
+
+                    var trans2 = layer.stateMachine.states[0].state.AddTransition(newState);
+                    trans2.AddCondition(AnimatorConditionMode.If, 0, "leftHandClosed");
+                }
             }
 
             if (!hasRightHand)
@@ -533,6 +587,17 @@ namespace WoWUnityExtras
                 var layer = controller.layers.First(layer => layer.name == "rightHandClosed");
                 layer.defaultWeight = 1;
                 layer.stateMachine.AddState("Empty");
+
+                if (animationPaths.TryGetValue("rightHand", out var path))
+                {
+                    var newState = layer.stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
+                    newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                    var trans = newState.AddTransition(layer.stateMachine.states[0].state);
+                    trans.AddCondition(AnimatorConditionMode.IfNot, 0, "rightHandClosed");
+
+                    var trans2 = layer.stateMachine.states[0].state.AddTransition(newState);
+                    trans2.AddCondition(AnimatorConditionMode.If, 0, "rightHandClosed");
+                }
             }
 
             if (!hasBlink)
@@ -540,30 +605,43 @@ namespace WoWUnityExtras
                 controller.AddLayer("blink");
                 var layer = controller.layers.First(layer => layer.name == "blink");
                 layer.defaultWeight = 1;
+
+                if (animationPaths.TryGetValue("blink", out var path))
+                {
+                    var newState = layer.stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
+                    newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                }
             }
 
+            var stateMachine = controller.layers[0].stateMachine;
             Dictionary<string, ChildAnimatorState> knownStates = new();
-            foreach (var state in controller.layers[0].stateMachine.states)
+            foreach (var state in stateMachine.states)
             {
-                var match = Regex.Match(state.state.name, @"^.+ID (\d+) variation (\d+)");
-                if (!match.Success)
+                var (id, variation) = GetIdVariation(state.state.name);
+                if (id == null)
                     continue;
 
-                var id = match.Groups[1].Value;
-                var variation = match.Groups[2].Value;
-
-                switch (id)
-                {
-                    case "0":
-                    case "1":
-                    case "4":
-                        break;
-
-                    default:
-                        continue;
-                };
-
                 knownStates[$"{id}_{variation}"] = state;
+            }
+
+            foreach (var (animType, path) in animationPaths)
+            {
+                var split = animType.Split("_");
+                if (split.Length != 2)
+                    continue;
+
+                var (id, variation) = (split[0], split[1]);
+
+                var key = $"{id}_{variation}";
+
+                if (!knownStates.ContainsKey(key))
+                {
+                    var newState = stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
+                    newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                    knownStates[$"{id}_{variation}"] = stateMachine.states[^1];
+                    if (id == "0" && variation == "0")
+                        stateMachine.defaultState = newState;
+                }
             }
 
             List<AnimatorState> idleStates = new();
