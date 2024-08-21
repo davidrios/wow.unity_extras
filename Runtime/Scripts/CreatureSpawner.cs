@@ -74,7 +74,7 @@ namespace WoWUnityExtras
         private readonly List<GameObject> prefabs = new();
         private (GameObject go, Creature creature) alive;
         private readonly Queue<(GameObject go, float deathTime)> dead = new();
-        private float timeOfDeath = 0;
+        private float timeOfDeath = -0xffffff;
 
         void Start()
         {
@@ -126,7 +126,7 @@ namespace WoWUnityExtras
 
             var inRange = Vector3.Distance(transform.position, playerTransform.position) < sharedSettings.spawnDistance;
 
-            if (inRange && alive.go == null && (Time.realtimeSinceStartup - timeOfDeath > spawnTime || timeOfDeath == 0))
+            if (inRange && alive.go == null && Time.realtimeSinceStartup - timeOfDeath > spawnTime)
             {
                 var aliveI = Instantiate(prefabs[Random.Range(0, prefabs.Count)], transform);
                 alive = (aliveI, aliveI.GetComponent<Creature>());
