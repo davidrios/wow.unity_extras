@@ -19,6 +19,8 @@ def main():
     parser.add_argument(
         "--anims", action="store_true", help="Copy FBX with animations."
     )
+    parser.add_argument("--include", help="Regex to include items by.")
+    parser.add_argument("--exclude", help="Regex to exclude items by.")
 
     args = parser.parse_args()
 
@@ -28,8 +30,14 @@ def main():
     if not source_dir.is_dir() or not dest_dir.is_dir():
         sys.exit("Invalid source or dest dir.")
 
+    include = re.compile(args.include) if args.include is not None else None
+    exclude = re.compile(args.exclude) if args.exclude is not None else None
+
     def copy_to(source: Path, dest: Path, force_replace=False):
-        if not source.is_file():
+        if not source.is_file() or (
+            (include is not None and not include.match(str(source))) or
+            (exclude is not None and exclude.match(str(source)))
+        ):
             return
 
         dest.parent.mkdir(parents=True, exist_ok=True)
