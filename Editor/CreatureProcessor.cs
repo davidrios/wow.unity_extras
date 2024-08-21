@@ -476,46 +476,32 @@ namespace WoWUnityExtras
             }
         }
 
-        public static bool SetupTransitions(AnimatorState source, AnimatorStateTransition templateTransition)
+        public static void SetupTransitions(AnimatorState source, AnimatorStateTransition templateTransition)
         {
-            templateTransition.name = "__tmp";
-            AnimatorStateTransition tmp = null;
-            var isDone = false;
+            var hasTransition = false;
 
             foreach (var transition in source.transitions)
             {
-                if (transition.destinationState.name != templateTransition.destinationState.name)
-                    continue;
-
-                if (transition.name != templateTransition.name)
-                {
-                    while (transition.conditions.Length > 0)
-                        transition.RemoveCondition(transition.conditions[^1]);
-
-                    foreach (var condition in templateTransition.conditions)
-                        transition.AddCondition(condition.mode, condition.threshold, condition.parameter);
-
-                    transition.hasExitTime = templateTransition.hasExitTime;
-
-                    isDone = true;
-                }
-
-                if (transition.name == templateTransition.name)
-                    tmp = transition;
+                hasTransition = hasTransition || transition.destinationState.name == templateTransition.destinationState.name;
             }
 
-            if (tmp != null)
-                source.RemoveTransition(tmp);
+            if (!hasTransition)
+            {
+                var conditions = templateTransition.conditions;
+                templateTransition.conditions = new AnimatorCondition[0];
+                foreach (var condition in conditions)
+                    templateTransition.AddCondition(condition.mode, condition.threshold, condition.parameter);
 
-            if (tmp == null && !isDone)
                 source.AddTransition(templateTransition);
+                if (AssetDatabase.GetAssetPath(source) != "")
+                    AssetDatabase.AddObjectToAsset(templateTransition, AssetDatabase.GetAssetPath(source));
 
-            return tmp != null && !isDone;
+                templateTransition.hideFlags = HideFlags.HideInHierarchy;
+            }
         }
 
         public static void SetupAnimations(AnimatorController controller)
         {
-            var hasMissing = false;
             controller.parameters = new AnimatorControllerParameter[4] {
                 new() { name = "state", type = AnimatorControllerParameterType.Int },
                 new() { name = "idleState", type = AnimatorControllerParameterType.Int },
@@ -581,12 +567,12 @@ namespace WoWUnityExtras
             }
 
             List<AnimatorState> idleStates = new();
-            List<AnimatorState> allStates = new();
+            List<(string, AnimatorState)> allStates = new();
 
             if (knownStates.TryGetValue("0_0", out var defaultIdle))
             {
                 idleStates.Add(defaultIdle.state);
-                allStates.Add(defaultIdle.state);
+                allStates.Add(("idle", defaultIdle.state));
 
                 for (var i = 1; i < 10; i++)
                 {
@@ -594,12 +580,13 @@ namespace WoWUnityExtras
                         continue;
 
                     idleStates.Add(altIdle.state);
-                    allStates.Add(altIdle.state);
+                    allStates.Add(($"idle v{i}", altIdle.state));
 
-                    hasMissing = SetupTransitions(
+                    SetupTransitions(
                         defaultIdle.state,
                         new AnimatorStateTransition()
                         {
+                            name = $"idle > idle v{i}",
                             destinationState = altIdle.state,
                             hasExitTime = false,
                             conditions = new AnimatorCondition[2] {
@@ -607,19 +594,20 @@ namespace WoWUnityExtras
                                 new () { parameter = "idleState", mode = AnimatorConditionMode.Equals, threshold = i },
                             }
                         }
-                    ) || hasMissing;
+                    );
 
-                    hasMissing = SetupTransitions(
+                    SetupTransitions(
                         altIdle.state,
                         new AnimatorStateTransition()
                         {
+                            name = $"idle v{i} > idle",
                             destinationState = defaultIdle.state,
                             conditions = new AnimatorCondition[2] {
                                 new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 0 },
                                 new () { parameter = "idleState", mode = AnimatorConditionMode.Equals, threshold = 0 },
                             }
                         }
-                    ) || hasMissing;
+                    );
                 }
 
                 var hasVariations = false;
@@ -635,59 +623,59 @@ namespace WoWUnityExtras
 
             if (knownStates.TryGetValue("4_0", out var walkState))
             {
-                foreach (var state in allStates)
+                foreach (var (name, state) in allStates)
                 {
-                    hasMissing = SetupTransitions(
+                    SetupTransitions(
                         state,
                         new AnimatorStateTransition()
                         {
+                            name = $"{name} > walk",
                             destinationState = walkState.state,
                             hasExitTime = false,
                             conditions = new AnimatorCondition[1] {
                                 new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 4 },
                             }
                         }
-                    ) || hasMissing;
+                    );
                 }
 
                 if (idleStates.Count > 0)
                 {
-                    hasMissing = SetupTransitions(
+                    SetupTransitions(
                         walkState.state,
                         new AnimatorStateTransition()
                         {
+                            name = "walk > idle",
                             destinationState = idleStates[0],
                             hasExitTime = false,
                             conditions = new AnimatorCondition[1] {
                                 new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 0 },
                             }
                         }
-                    ) || hasMissing;
+                    );
                 }
 
-                allStates.Add(walkState.state);
+                allStates.Add(("walk", walkState.state));
             }
 
             if (knownStates.TryGetValue("1_0", out var deathState))
             {
-                foreach (var state in allStates)
+                foreach (var (name, state) in allStates)
                 {
-                    hasMissing = SetupTransitions(
+                    SetupTransitions(
                         state,
                         new AnimatorStateTransition()
                         {
+                            name = $"{name} > death",
                             destinationState = deathState.state,
                             hasExitTime = false,
                             conditions = new AnimatorCondition[1] {
                                 new () { parameter = "state", mode = AnimatorConditionMode.Equals, threshold = 1 },
                             }
                         }
-                    ) || hasMissing;
+                    );
                 }
             }
-
-            if (hasMissing)
-                Debug.LogWarning($"{controller.name}: There're still transitions missing set up.");
 
             AssetDatabase.SaveAssets();
         }
