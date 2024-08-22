@@ -126,7 +126,7 @@ namespace WoWUnityExtras
 
             var currentOrientation = keepOrientation ? gameObject.transform.localEulerAngles.y : 0;
 
-            if (direction.x == 0 && direction.z == 0 && direction.y == -1 && currentOrientation == originalOrientation)
+            if (direction.x == 0 && direction.z == 0 && direction.y == -1 && (!keepOrientation || (keepOrientation && currentOrientation == originalOrientation)))
                 return;
 
             if (creatureState == CreatureState.Idle && keepOrientation && currentOrientation != originalOrientation)
