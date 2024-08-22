@@ -244,6 +244,10 @@ namespace WoWUnityExtras
             StopWandering();
             direction = Vector3.zero;
             creatureAnimation.Death();
+            alignToTerrain = true;
+            var center = characterController.center;
+            center.y -= 0.05f;
+            characterController.center = center;
         }
     }
 }
