@@ -610,6 +610,10 @@ namespace WoWUnityExtras
                 {
                     var newState = layer.stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
                     newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+
+                    var empty = layer.stateMachine.AddState("Empty");
+                    var trans = newState.AddTransition(empty);
+                    trans.AddCondition(AnimatorConditionMode.Equals, 1, "state");
                 }
             }
 
