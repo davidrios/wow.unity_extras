@@ -591,7 +591,7 @@ namespace WoWUnityExtras
             };
         }
 
-        public static void SetupAnimations(AnimatorController controller)
+        public static void SetupAnimations(AnimatorController controller, IdleVariationsSettings idleVariationsSettings)
         {
             Dictionary<string, string> animationPaths = new();
 
@@ -777,6 +777,7 @@ namespace WoWUnityExtras
                 {
                     var behaviour = defaultIdle.state.AddStateMachineBehaviour<IdleVariations>();
                     behaviour.idleVariations = idleStates.Count;
+                    behaviour.settings = idleVariationsSettings;
                 }
             }
 

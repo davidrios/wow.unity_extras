@@ -7,29 +7,27 @@ namespace WoWUnityExtras
         private static readonly int stateParam = Animator.StringToHash("state");
         private static readonly int idleStateParam = Animator.StringToHash("idleState");
 
-        [SerializeField]
         public int idleVariations = 1;
-        [SerializeField]
-        private float idleVariationChance = 0.02f;
-        [SerializeField]
-        private float checkInterval = 0.1f;
+        public IdleVariationsSettings settings;
 
         private float lastTime = 0;
 
         override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
-            lastTime = -checkInterval; // force starting with a check
+            lastTime = -(settings?.checkInterval ?? 0.1f); // force starting with a check
         }
 
         override public void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
-            if (idleVariations > 1 && idleVariationChance > 0 && animator.GetInteger(stateParam) == 0)
+            var chance = settings?.variationChance ?? 0.1f;
+
+            if (idleVariations > 1 && chance > 0 && animator.GetInteger(stateParam) == 0)
             {
-                if (stateInfo.normalizedTime - lastTime >= checkInterval)
+                if (stateInfo.normalizedTime - lastTime >= (settings?.checkInterval ?? 0.1f))
                 {
                     lastTime = stateInfo.normalizedTime;
 
-                    if (Random.value < idleVariationChance)
+                    if (Random.value < chance)
                         animator.SetInteger(idleStateParam, Random.Range(1, idleVariations));
                 }
             }

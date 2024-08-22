@@ -20,6 +20,7 @@ namespace WoWUnityExtras
         private CreatureSpawnerSettings creatureSpawnerSettings;
 
         private AnimatorController animationController;
+        private IdleVariationsSettings idleVariationSettings;
 
         [MenuItem("Window/wow.unity_extras")]
         public static void ShowWindow()
@@ -179,15 +180,17 @@ namespace WoWUnityExtras
             GUILayout.Space(10);
             GUILayout.Label("Animation", EditorStyles.boldLabel);
 
+            idleVariationSettings = EditorGUILayout.ObjectField("IdleVariationSettings: ", idleVariationSettings, typeof(IdleVariationsSettings), false) as IdleVariationsSettings;
+
             if (animationController != null)
-                GUILayout.Label($"Clip selected: {animationController.name}");
+                GUILayout.Label($"Controller selected: {animationController.name}");
             else
                 GUILayout.Label("Select animation controller");
 
-            if (animationController != null)
+            if (animationController != null && idleVariationSettings != null)
             {
                 if (GUILayout.Button("Setup Controller"))
-                    CreatureProcessor.SetupAnimations(animationController);
+                    CreatureProcessor.SetupAnimations(animationController, idleVariationSettings);
             }
         }
     }
