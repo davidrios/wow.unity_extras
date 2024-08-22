@@ -7,6 +7,9 @@ namespace WoWUnityExtras
 {
     public class Window : EditorWindow
     {
+        private GameObject selectedCreatureModel;
+        private Texture2D[] selectedCreatureTextures = new Texture2D[0];
+
         private TextAsset selectedJson;
         private GameObject selectedGameObject;
 
@@ -29,6 +32,7 @@ namespace WoWUnityExtras
             Selection.selectionChanged += OnJsonSelectionChange;
             Selection.selectionChanged += OnGameObjectSelectionChange;
             Selection.selectionChanged += OnAnimationSelectionChange;
+            Selection.selectionChanged += OnCreatureModelSelectionChange;
         }
 
         private void OnDisable()
@@ -36,6 +40,7 @@ namespace WoWUnityExtras
             Selection.selectionChanged -= OnJsonSelectionChange;
             Selection.selectionChanged -= OnGameObjectSelectionChange;
             Selection.selectionChanged -= OnAnimationSelectionChange;
+            Selection.selectionChanged -= OnCreatureModelSelectionChange;
         }
 
         void OnAnimationSelectionChange()
@@ -74,8 +79,44 @@ namespace WoWUnityExtras
             Repaint();
         }
 
+        void OnCreatureModelSelectionChange()
+        {
+            var selected = Selection.GetFiltered<GameObject>(SelectionMode.Unfiltered);
+            if (selected.Length > 0)
+            {
+                if (Path.GetExtension(AssetDatabase.GetAssetPath(selected[0])).ToLower() != ".fbx")
+                    selectedCreatureModel = null;
+                else
+                    selectedCreatureModel = selected[0];
+            }
+
+            selectedCreatureTextures = Selection.GetFiltered<Texture2D>(SelectionMode.Unfiltered);
+
+
+            Repaint();
+        }
+
         private void OnGUI()
         {
+            GUILayout.Label("Creature Model", EditorStyles.boldLabel);
+            selectedCreatureModel = EditorGUILayout.ObjectField("Creature Model: ", selectedCreatureModel, typeof(GameObject), false) as GameObject;
+            for (var i = 0; i < selectedCreatureTextures.Length; i++)
+            {
+                selectedCreatureTextures[i] = EditorGUILayout.ObjectField($"Creature Texture {i}: ", selectedCreatureTextures[i], typeof(Texture2D), false) as Texture2D;
+            }
+
+            if (selectedCreatureModel != null)
+            {
+                if (GUILayout.Button("Set up"))
+                    CreatureProcessor.SetupCreatureModel(selectedCreatureModel, selectedCreatureTextures);
+            }
+            else if (selectedCreatureTextures.Length > 0)
+            {
+                if (GUILayout.Button("Create textures"))
+                    CreatureProcessor.CreateTextures(selectedCreatureTextures);
+            }
+
+            GUILayout.Space(10);
             GUILayout.Label("Creatures", EditorStyles.boldLabel);
             selectedJson = EditorGUILayout.ObjectField("Creature Data JSON: ", selectedJson, typeof(TextAsset), false) as TextAsset;
             if (selectedJson != null)

@@ -56,6 +56,83 @@ namespace WoWUnityExtras
             }
         };
 
+        public static void SetupCreatureModel(GameObject creatureModel, Texture2D[] creatureTextures)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(creatureModel);
+            if (assetPath == null)
+            {
+                Debug.LogWarning("invalid asset");
+                return;
+            }
+
+            var assetDir = Path.GetDirectoryName(assetPath);
+            var assetBaseName = Path.GetFileNameWithoutExtension(assetPath);
+
+            var controllerPath = Path.Join(assetDir, $"{assetBaseName}.controller");
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+            if (controller == null)
+                controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+
+            var mainPrefabPath = Path.ChangeExtension(assetPath, ".prefab");
+            var mainPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(mainPrefabPath);
+            if (mainPrefab == null)
+            {
+                var mainPrefabInstance = PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(assetPath)) as GameObject;
+                mainPrefabInstance.AddComponent<Creature>();
+                mainPrefabInstance.AddComponent<CreatureSounds>();
+
+                var charController = mainPrefabInstance.GetComponent<CharacterController>();
+                var center = charController.center;
+                center.y = 1.06f;
+                charController.center = center;
+
+                var animator = mainPrefabInstance.GetComponent<Animator>();
+                animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                animator.runtimeAnimatorController = controller;
+
+                mainPrefab = PrefabUtility.SaveAsPrefabAsset(mainPrefabInstance, mainPrefabPath);
+                UnityEngine.Object.DestroyImmediate(mainPrefabInstance);
+            }
+
+            if (creatureTextures.Length == 0)
+            {
+                List<Texture2D> textures = new();
+                foreach (var path in Directory.GetFiles(assetDir, $"{assetBaseName}skin*.png"))
+                {
+                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                    if (texture != null)
+                        textures.Add(texture);
+                }
+
+                creatureTextures = textures.ToArray();
+            }
+
+            foreach (var texture in creatureTextures)
+            {
+                var texturePath = AssetDatabase.GetAssetPath(texture);
+                MaterialUtility.GetBasicMaterial(texturePath, (uint)MaterialUtility.BlendModes.Opaque);
+                MaterialUtility.GetBasicMaterial(texturePath, (uint)MaterialUtility.BlendModes.AlphaKey);
+
+                var variantPath = Path.Join(assetDir, $"{assetBaseName}__{texture.name}.prefab");
+                if (File.Exists(variantPath))
+                    continue;
+
+                var prefabInstance = PrefabUtility.InstantiatePrefab(mainPrefab) as GameObject;
+                PrefabUtility.SaveAsPrefabAsset(prefabInstance, variantPath);
+                UnityEngine.Object.DestroyImmediate(prefabInstance);
+            }
+        }
+
+        public static void CreateTextures(Texture2D[] textures)
+        {
+            foreach (var texture in textures)
+            {
+                var texturePath = AssetDatabase.GetAssetPath(texture);
+                MaterialUtility.GetBasicMaterial(texturePath, (uint)MaterialUtility.BlendModes.Opaque);
+                MaterialUtility.GetBasicMaterial(texturePath, (uint)MaterialUtility.BlendModes.AlphaKey);
+            }
+        }
+
         public static (CreatureData data, string rootDir, string creaturesDir, List<Database.DisplayInfo> creatureDisplays) ParseCreatureData(TextAsset creatureDataJson)
         {
             var creatureData = JsonConvert.DeserializeObject<CreatureData>(creatureDataJson.text);
