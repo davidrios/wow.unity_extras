@@ -16,8 +16,11 @@ namespace WoWUnityExtras
     enum Race
     {
         Human = 1,
+        Orc = 2,
         Dwarf = 3,
-        Scourge = 5
+        Scourge = 5,
+        Tauren = 6,
+        Troll = 8,
     }
 
     enum Sex
@@ -31,7 +34,8 @@ namespace WoWUnityExtras
         Helm = 0,
         Shoulder = 1,
         OHWeapon = 102,
-        Shield = 104
+        Shield = 104,
+        OffHand = 1042,
     }
 
     public class CreatureProcessor
@@ -40,20 +44,76 @@ namespace WoWUnityExtras
             {
                 (Race.Human, Sex.Male), new() {
                     { (EquipSlot.OHWeapon, 0), new(0.00033f, -0.00035f, 0) },
-                    { (EquipSlot.Shield, 0), new(0, 0.00199f, -0.0009f) }
+                    { (EquipSlot.Shield, 0), new(0, 0.00199f, -0.0009f) },
+                    { (EquipSlot.Shoulder, 0), new(-0.00019f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-0.00019f, 0, 0) },
+                    { (EquipSlot.Helm, 0), new(0.00029f, -0.00011f, 0) }
+                }
+            },
+            {
+                (Race.Human, Sex.Female), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    { (EquipSlot.Shield, 0), new(0.00078f, 0.00155f, -0.0014f) },
+                    { (EquipSlot.Shoulder, 0), new(-9e-05f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-9e-05f, 0, 0) },
+                    { (EquipSlot.Helm, 0), new(0.00082f, 0.00016f, 0) }
                 }
             },
             {
                 (Race.Dwarf, Sex.Male), new() {
-                    { (EquipSlot.Helm, 0), new(0.00054f, -0.0001577f, 0) }
+                    { (EquipSlot.Helm, 0), new(0.00033f, -0.0001577f, 0) },
+                    { (EquipSlot.Shoulder, 0), new(0.0001f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(0.0001f, 0, 0) },
                 }
             },
             {
                 (Race.Scourge, Sex.Male), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    { (EquipSlot.OffHand, 0), new(0, 0, 0) },
+                    { (EquipSlot.Helm, 0), new(0.00079f, -5e-05f, 0) },
                     { (EquipSlot.Shoulder, 0), new(-0.0004f, 0, 0) },
                     { (EquipSlot.Shoulder, 1), new(-0.00049f, 0, 0) }
                 }
-            }
+            },
+            {
+                (Race.Scourge, Sex.Female), new() {
+                    { (EquipSlot.Helm, 0), new(0.00035f, 0.00021f, 0) },
+                    { (EquipSlot.Shoulder, 0), new(-0.00024f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-0.00024f, 0, 0) },
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, -0.00015f) },
+                    { (EquipSlot.OffHand, 0), new(0, 0, 0) },
+                    { (EquipSlot.Shield, 0), new(0.00168f, 0.00158f, -0.00103f) }
+                }
+            },
+            {
+                (Race.Orc, Sex.Male), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    { (EquipSlot.OffHand, 0), new(0, 0, 0) },
+                    { (EquipSlot.Helm, 0), new(0.00039f, -0.00017f, 0) },
+                    { (EquipSlot.Shoulder, 0), new(-0.00025f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-0.00025f, 0, 0) }
+                }
+            },
+            {
+                (Race.Tauren, Sex.Female), new() {
+                    { (EquipSlot.Shoulder, 0), new(-0.00022f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-0.00022f, 0, 0) },
+                }
+            },
+            {
+                (Race.Tauren, Sex.Male), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    { (EquipSlot.OffHand, 0), new(0, 0, 0) },
+                    { (EquipSlot.Shoulder, 0), new(0.00016f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(0.00016f, 0, 0) },
+                }
+            },
+            {
+                (Race.Troll, Sex.Female), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    { (EquipSlot.OffHand, 0), new(0, 0, 0) },
+                }
+            },
         };
 
         public static void SetupCreatureModel(GameObject creatureModel, Texture2D[] creatureTextures)
@@ -121,6 +181,47 @@ namespace WoWUnityExtras
                 PrefabUtility.SaveAsPrefabAsset(prefabInstance, variantPath);
                 UnityEngine.Object.DestroyImmediate(prefabInstance);
             }
+        }
+
+        public static void SetupCritterModel(GameObject critterModel)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(critterModel);
+            if (assetPath == null)
+            {
+                Debug.LogWarning("invalid asset");
+                return;
+            }
+
+            var assetDir = Path.GetDirectoryName(assetPath);
+            var assetBaseName = Path.GetFileNameWithoutExtension(assetPath);
+
+            var controllerPath = Path.Join(assetDir, $"{assetBaseName}.controller");
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+            if (controller == null)
+            {
+                controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                var stateMachine = controller.layers[0].stateMachine;
+                foreach (var path in Directory.GetFiles(Path.GetDirectoryName(assetPath), $"{assetBaseName}_*.anim"))
+                {
+                    var newState = stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
+                    newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                    break;
+                }
+            }
+
+            var mainPrefabPath = Path.Join(assetDir, $"{assetBaseName}.prefab");
+            var mainPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(mainPrefabPath);
+            if (mainPrefab != null)
+                return;
+
+            var mainPrefabInstance = PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(assetPath)) as GameObject;
+            mainPrefabInstance.AddComponent<Animator>();
+            var animator = mainPrefabInstance.GetComponent<Animator>();
+            animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+            animator.runtimeAnimatorController = controller;
+
+            PrefabUtility.SaveAsPrefabAsset(mainPrefabInstance, mainPrefabPath);
+            UnityEngine.Object.DestroyImmediate(mainPrefabInstance);
         }
 
         public static void CreateTextures(Texture2D[] textures)
@@ -215,9 +316,12 @@ namespace WoWUnityExtras
                         }
                         else
                         {
-                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1")?.gameObject.SetActive(false);
-                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1.001")?.gameObject.SetActive(false);
-                            creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1.002")?.gameObject.SetActive(false);
+                            if (!geoset.StartsWith("Geoset"))
+                            {
+                                creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1")?.gameObject.SetActive(false);
+                                creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1.001")?.gameObject.SetActive(false);
+                                creaturePrefab.transform.Find($"{prefixGeo}_{geoset[..^1]}1.002")?.gameObject.SetActive(false);
+                            }
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset}")?.gameObject.SetActive(true);
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset}.001")?.gameObject.SetActive(true);
                             creaturePrefab.transform.Find($"{prefixGeo}_{geoset}.002")?.gameObject.SetActive(true);
@@ -241,32 +345,33 @@ namespace WoWUnityExtras
                     }
                 }
 
+                var processedSlots = true;
                 var attachmentsPath = Path.Join(rootDir, creatureDisplay.model.FileData.Replace(".m2", "_attachments.json"));
                 var attachmentsJson = AssetDatabase.LoadAssetAtPath<TextAsset>(attachmentsPath);
                 if (attachmentsJson != null)
                 {
-                    void processSlot(string slotKey, int resourceIndex, int boneId)
+                    bool processSlot(string slotKey, int resourceIndex, int boneId)
                     {
                         if (creatureDisplay.itemSlots == null || !creatureDisplay.itemSlots.TryGetValue(slotKey, out var slotItem))
-                            return;
+                            return true;
 
                         var equipPrefabPath = Path.Join(rootDir, Path.ChangeExtension(slotItem.displayInfo.ModelResourcesIDFiles[resourceIndex], "prefab"));
                         var equipPrefab = M2Utility.FindPrefab(equipPrefabPath);
                         if (equipPrefab == null)
                         {
                             Debug.Log($"Couldn't find equipment prefab: {equipPrefabPath}");
-                            return;
+                            return true;
                         }
 
                         var bone = creaturePrefab.GetComponentsInChildren<Transform>().FirstOrDefault(item => item.gameObject.name == $"bone_{boneId}");
                         if (bone == null)
                         {
                             Debug.Log($"Couldn't find bone: {boneId}");
-                            return;
+                            return true;
                         }
 
                         if (bone.transform.Find("bone_equip") != null) // do nothing if it exists
-                            return;
+                            return true;
 
                         var equipInstance = PrefabUtility.InstantiatePrefab(equipPrefab, bone.transform) as GameObject;
                         equipInstance.name = "bone_equip";
@@ -275,10 +380,19 @@ namespace WoWUnityExtras
 
                         var equipSlot = (EquipSlot)int.Parse(slotKey);
 
-                        if (creatureDisplay.extra != null && EquipPositions.TryGetValue(((Race)creatureDisplay.extra.DisplayRaceID, (Sex)creatureDisplay.extra.DisplaySexID), out var slotPositionMap))
+                        var didGetRace = creatureDisplay.extra == null;
+                        var didGetSlot = creatureDisplay.extra == null;
+                        if (creatureDisplay.extra != null)
                         {
-                            if (slotPositionMap.TryGetValue((equipSlot, resourceIndex), out var localPosition))
-                                equipInstance.transform.localPosition = localPosition;
+                            didGetRace = EquipPositions.TryGetValue(((Race)creatureDisplay.extra.DisplayRaceID, (Sex)creatureDisplay.extra.DisplaySexID), out var slotPositionMap);
+                            if (didGetRace)
+                            {
+                                didGetSlot = slotPositionMap.TryGetValue((equipSlot, resourceIndex), out var localPosition);
+                                if (didGetSlot)
+                                    equipInstance.transform.localPosition = localPosition;
+                                else
+                                    Debug.Log($"error slot: {creatureDisplay.extra.DisplayRaceID}, {creatureDisplay.extra.DisplaySexID}, {equipSlot}, {resourceIndex}");
+                            }
                         }
 
                         if (equipInstance.TryGetComponent<LODGroup>(out var lodGroup))
@@ -299,26 +413,33 @@ namespace WoWUnityExtras
                             creatureAnimation.leftHandClosed = creatureAnimation.leftHandClosed || equipSlot switch
                             {
                                 EquipSlot.Shield => true,
+                                EquipSlot.OffHand => true,
                                 _ => false
                             };
                         }
 
                         SetupEquipMaterials(equipPrefabPath, equipInstance, slotItem.displayInfo.ModelMaterialResourcesIDFiles[resourceIndex]);
+
+                        return didGetRace && didGetSlot;
                     }
 
                     var attachments = JsonConvert.DeserializeObject<ModelAttachments>(attachmentsJson.text).attachments;
                     foreach (var attachment in attachments)
                     {
                         if (attachment.id == 1)
-                            processSlot("102", 0, attachment.bone);
+                            processedSlots = processSlot("102", 0, attachment.bone) && processedSlots;
                         else if (attachment.id == 2)
-                            processSlot("104", 0, attachment.bone);
+                        {
+                            var res1 = processSlot("104", 0, attachment.bone) && processedSlots;
+                            var res2 = processSlot("1042", 0, attachment.bone) && processedSlots;
+                            processedSlots = res1 || res2;
+                        }
                         else if (attachment.id == 5)
-                            processSlot("1", 1, attachment.bone);
+                            processedSlots = processSlot("1", 1, attachment.bone) && processedSlots;
                         else if (attachment.id == 6)
-                            processSlot("1", 0, attachment.bone);
+                            processedSlots = processSlot("1", 0, attachment.bone) && processedSlots;
                         else if (attachment.id == 11)
-                            processSlot("0", 0, attachment.bone);
+                            processedSlots = processSlot("0", 0, attachment.bone) && processedSlots;
                     }
                 }
 
@@ -350,6 +471,9 @@ namespace WoWUnityExtras
                             creatureSounds.SetFidget5(fidget5Sound);
                     }
                 }
+
+                if (!processedSlots)
+                    throw new Exception("slot config not found");
 
                 PrefabUtility.SaveAsPrefabAsset(creaturePrefab, creaturePath);
                 UnityEngine.Object.DestroyImmediate(creaturePrefab);

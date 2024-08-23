@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -10,7 +11,7 @@ namespace WoWUnityExtras
         private GameObject selectedCreatureModel;
         private Texture2D[] selectedCreatureTextures = new Texture2D[0];
 
-        private TextAsset selectedJson;
+        private List<TextAsset> selectedJson = new();
         private GameObject selectedGameObject;
 
         private TextAsset creatureSpawnJson;
@@ -69,12 +70,11 @@ namespace WoWUnityExtras
         void OnJsonSelectionChange()
         {
             var selected = Selection.GetFiltered<TextAsset>(SelectionMode.Unfiltered);
-            if (selected.Length > 0)
+            selectedJson = new();
+            foreach (var asset in selected)
             {
-                if (Path.GetExtension(AssetDatabase.GetAssetPath(selected[0])).ToLower() != ".json")
-                    selectedJson = null;
-                else
-                    selectedJson = selected[0];
+                if (Path.GetExtension(AssetDatabase.GetAssetPath(selected[0])).ToLower() == ".json")
+                    selectedJson.Add(asset);
             }
 
             Repaint();
@@ -108,8 +108,19 @@ namespace WoWUnityExtras
 
             if (selectedCreatureModel != null)
             {
-                if (GUILayout.Button("Set up"))
-                    CreatureProcessor.SetupCreatureModel(selectedCreatureModel, selectedCreatureTextures);
+                GUILayout.BeginHorizontal();
+                try
+                {
+                    if (GUILayout.Button("Set up creature"))
+                        CreatureProcessor.SetupCreatureModel(selectedCreatureModel, selectedCreatureTextures);
+
+                    if (GUILayout.Button("Set up critter"))
+                        CreatureProcessor.SetupCritterModel(selectedCreatureModel);
+                }
+                finally
+                {
+                    GUILayout.EndHorizontal();
+                }
             }
             else if (selectedCreatureTextures.Length > 0)
             {
@@ -119,16 +130,49 @@ namespace WoWUnityExtras
 
             GUILayout.Space(10);
             GUILayout.Label("Creatures", EditorStyles.boldLabel);
-            selectedJson = EditorGUILayout.ObjectField("Creature Data JSON: ", selectedJson, typeof(TextAsset), false) as TextAsset;
+
+            if (selectedJson.Count == 0)
+                selectedJson.Add(null);
+
+            if (selectedJson.Count < 2)
+                selectedJson[0] = EditorGUILayout.ObjectField("Creature Data JSON: ", selectedJson[0], typeof(TextAsset), false) as TextAsset;
+            else
+                GUILayout.Label($"{selectedJson.Count} JSON files selected.");
+
             if (selectedJson != null)
             {
                 GUILayout.Space(5);
                 if (GUILayout.Button("Create Prefabs with Sounds"))
-                    CreatureProcessor.CreateCreaturePrefabsFromTemplate(selectedJson);
+                {
+                    foreach (var json in selectedJson)
+                    {
+                        try
+                        {
+                            CreatureProcessor.CreateCreaturePrefabsFromTemplate(json);
+                        }
+                        catch
+                        {
+                            Debug.LogError($"Error processing {json.name}");
+                            throw;
+                        }
+                    }
+                }
 
                 GUILayout.Space(5);
                 if (GUILayout.Button("Create Only SoundKits"))
-                    CreatureProcessor.GetOrCreateSoundKits(selectedJson);
+                {
+                    foreach (var json in selectedJson)
+                    {
+                        try
+                        {
+                            CreatureProcessor.GetOrCreateSoundKits(json);
+                        }
+                        catch
+                        {
+                            Debug.LogError($"Error processing {json.name}");
+                        }
+                    }
+                }
             }
 
             GUILayout.Space(10);
