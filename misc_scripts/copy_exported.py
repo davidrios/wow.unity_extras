@@ -112,7 +112,7 @@ def main():
             or source_item.name.endswith("_bones.json")
         ):
             do_continue = False
-            for suffix in (".phys", "_bones"):
+            for suffix in ("_bones",):
                 if obj_has_fbx(
                     relative_source_item.with_name(
                         relative_source_item.name.replace(suffix, "")
