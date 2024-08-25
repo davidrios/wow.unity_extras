@@ -220,8 +220,45 @@ namespace WoWUnityExtras
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
             animator.runtimeAnimatorController = controller;
 
-            PrefabUtility.SaveAsPrefabAsset(mainPrefabInstance, mainPrefabPath);
-            UnityEngine.Object.DestroyImmediate(mainPrefabInstance);
+            var metadataJson = AssetDatabase.LoadAssetAtPath<TextAsset>(Path.Join(assetDir, $"{assetBaseName}.json"));
+            if (metadataJson != null)
+            {
+                var metadata = JsonConvert.DeserializeObject<M2Utility.M2>(metadataJson.text);
+                M2Utility.ProcessTextures(metadata.textures, assetDir);
+                var renderers = mainPrefabInstance.GetComponentsInChildren<Renderer>();
+                var skinMaterials = MaterialUtility.GetSkinMaterials(metadata);
+                for (uint rendererIndex = 0; rendererIndex < renderers.Length; rendererIndex++)
+                {
+                    var renderer = renderers[rendererIndex];
+                    var (material, _) = skinMaterials[rendererIndex];
+                    renderer.material = material;
+                }
+            }
+
+            var prefabRoot = new GameObject();
+            mainPrefabInstance.transform.parent = prefabRoot.transform;
+            mainPrefabInstance.transform.rotation = Quaternion.Euler(0f, 180, 0f);
+
+            var physicsPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(Path.Join(assetDir, $"{assetBaseName}.phys.obj"));
+            if (physicsPrefab != null)
+            {
+                var collisionMesh = physicsPrefab.GetComponentInChildren<MeshFilter>();
+                if (collisionMesh != null)
+                {
+                    var collider = new GameObject("Collision");
+                    collider.transform.SetParent(prefabRoot.transform);
+                    var parentCollider = collider.AddComponent<MeshCollider>();
+                    parentCollider.sharedMesh = collisionMesh.sharedMesh;
+                }
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(prefabRoot, mainPrefabPath);
+            UnityEngine.Object.DestroyImmediate(prefabRoot);
+
+            AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}_.prefab"));
+            AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}_bones.json"));
+            AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}.obj"));
+            AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}.mtl"));
         }
 
         public static void CreateTextures(Texture2D[] textures)
