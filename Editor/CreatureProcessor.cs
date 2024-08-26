@@ -200,11 +200,17 @@ namespace WoWUnityExtras
             if (controller == null)
             {
                 controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                controller.parameters = new AnimatorControllerParameter[1] {
+                    new() { name = "offset", type = AnimatorControllerParameterType.Float },
+                };
                 var stateMachine = controller.layers[0].stateMachine;
                 foreach (var path in Directory.GetFiles(Path.GetDirectoryName(assetPath), $"{assetBaseName}_*.anim"))
                 {
                     var newState = stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
                     newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                    newState.cycleOffsetParameter = "offset";
+                    newState.cycleOffsetParameterActive = true;
+                    newState.AddStateMachineBehaviour<RandomAnimOffset>();
                     break;
                 }
             }
@@ -258,6 +264,7 @@ namespace WoWUnityExtras
             AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}_.prefab"));
             AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}_bones.json"));
             AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}.obj"));
+            AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}__dsinv.obj"));
             AssetDatabase.DeleteAsset(Path.Join(assetDir, $"{assetBaseName}.mtl"));
         }
 
