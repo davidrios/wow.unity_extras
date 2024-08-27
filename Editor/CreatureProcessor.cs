@@ -20,6 +20,7 @@ namespace WoWUnityExtras
         Dwarf = 3,
         Scourge = 5,
         Tauren = 6,
+        Gnome = 7,
         Troll = 8,
     }
 
@@ -61,7 +62,8 @@ namespace WoWUnityExtras
             },
             {
                 (Race.Dwarf, Sex.Male), new() {
-                    { (EquipSlot.Helm, 0), new(0.00033f, -0.0001577f, 0) },
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    { (EquipSlot.Helm, 0), new(0.00047f, -0.00016f, 0) },
                     { (EquipSlot.Shoulder, 0), new(0.0001f, 0, 0) },
                     { (EquipSlot.Shoulder, 1), new(0.0001f, 0, 0) },
                 }
@@ -70,7 +72,7 @@ namespace WoWUnityExtras
                 (Race.Scourge, Sex.Male), new() {
                     { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
                     { (EquipSlot.OffHand, 0), new(0, 0, 0) },
-                    { (EquipSlot.Helm, 0), new(0.00079f, -5e-05f, 0) },
+                    { (EquipSlot.Helm, 0), new(0.00095f, 3e-05f, 0) },
                     { (EquipSlot.Shoulder, 0), new(-0.0004f, 0, 0) },
                     { (EquipSlot.Shoulder, 1), new(-0.00049f, 0, 0) }
                 }
@@ -112,6 +114,15 @@ namespace WoWUnityExtras
                 (Race.Troll, Sex.Female), new() {
                     { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
                     { (EquipSlot.OffHand, 0), new(0, 0, 0) },
+                }
+            },
+            {
+                (Race.Gnome, Sex.Female), new() {
+                    { (EquipSlot.OHWeapon, 0), new(0, 0, 0) },
+                    //{ (EquipSlot.Shield, 0), new(0.00078f, 0.00155f, -0.0014f) },
+                    { (EquipSlot.Shoulder, 0), new(-0.00012f, 0, 0) },
+                    { (EquipSlot.Shoulder, 1), new(-0.00012f, 0, 0) },
+                    //{ (EquipSlot.Helm, 0), new(0.00082f, 0.00016f, 0) }
                 }
             },
         };
