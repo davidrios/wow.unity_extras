@@ -675,10 +675,8 @@ namespace WoWUnityExtras
             Debug.Log($"ids: ...\n{String.Join("\n", idsS)}");
         }
 
-        public static void PlaceCreatureSpawners(TextAsset creatureTableJson, GameObject mapArea, GameObject target, int mapId, TextAsset creatureDataJson, CreatureSpawnerSettings creatureSpawnerSettings, bool randomRotation = true)
+        public static List<GameObject> GetCreaturePrefabs(CreatureData creatureData, string creaturesDir, List<Database.DisplayInfo> creatureDisplays)
         {
-            var (creatureData, _, creaturesDir, creatureDisplays) = ParseCreatureData(creatureDataJson);
-
             List<GameObject> prefabs = new();
             foreach (var creatureDisplay in creatureDisplays)
             {
@@ -694,6 +692,44 @@ namespace WoWUnityExtras
                 prefabs.Add(prefab);
             }
 
+            return prefabs;
+        }
+
+        public static GameObject CreateSpawnerIfInBounds(CreatureTableRow creatureRow, Bounds bounds, CreatureSpawnerSettings creatureSpawnerSettings, List<GameObject> prefabs, bool randomRotation)
+        {
+            var point = GetCreaturePosition(creatureRow);
+            if (!bounds.Contains(point))
+                return null;
+
+            var spawner = new GameObject($"Spawner_{creatureRow.guid}");
+            spawner.transform.localPosition = point;
+            if (randomRotation)
+                spawner.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(0, 360), 0f);
+            else
+                spawner.transform.rotation = Quaternion.Euler(0f, Mathf.Rad2Deg * creatureRow.orientation, 0f);
+
+            var spawnerComponent = spawner.AddComponent<CreatureSpawner>();
+            spawnerComponent.spawnTime = creatureRow.spawntimesecs;
+            spawnerComponent.sharedSettings = creatureSpawnerSettings;
+
+            foreach (var prefab in prefabs)
+            {
+                var instance = PrefabUtility.InstantiatePrefab(prefab, spawner.transform) as GameObject;
+                if (instance.TryGetComponent<Creature>(out var creature))
+                {
+                    creature.wanderRange = creatureRow.wander_distance;
+                    creature.wanderMinDistance = creature.wanderRange / 3;
+                }
+            }
+
+            return spawner;
+        }
+
+        public static void PlaceCreatureSpawners(TextAsset creatureTableJson, GameObject mapArea, GameObject target, int mapId, TextAsset creatureDataJson, CreatureSpawnerSettings creatureSpawnerSettings, bool randomRotation = false)
+        {
+            var (creatureData, _, creaturesDir, creatureDisplays) = ParseCreatureData(creatureDataJson);
+            var prefabs = GetCreaturePrefabs(creatureData, creaturesDir, creatureDisplays);
+
             if (prefabs.Count == 0)
             {
                 Debug.LogWarning("No prefabs to add.");
@@ -707,29 +743,64 @@ namespace WoWUnityExtras
                 if (creatureRow.id1 != creatureData.info.entry || creatureRow.map != mapId)
                     continue;
 
-                var point = GetCreaturePosition(creatureRow);
-                if (!bounds.Contains(point))
+                var spawner = CreateSpawnerIfInBounds(creatureRow, bounds, creatureSpawnerSettings, prefabs, randomRotation);
+                if (spawner != null)
+                {
+                    var position = spawner.transform.position;
+                    spawner.transform.parent = target.transform;
+                    spawner.transform.localPosition = position;
+                }
+            }
+        }
+
+        public static void PlaceCreatureSpawnersFromFolder(TextAsset creatureTableJson, GameObject mapArea, GameObject target, int mapId, TextAsset creatureDataJson, CreatureSpawnerSettings creatureSpawnerSettings, bool randomRotation = true)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(creatureDataJson);
+
+            Dictionary<int, (List<GameObject> prefabs, CreatureData creatureData)> prefabsById = new();
+
+            foreach (var path in Directory.GetFiles(Path.GetDirectoryName(assetPath), $"*.json"))
+            {
+                var dirAssetJson = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+                try
+                {
+                    var (creatureData, _, creaturesDir, creatureDisplays) = ParseCreatureData(dirAssetJson);
+                    var prefabs = GetCreaturePrefabs(creatureData, creaturesDir, creatureDisplays);
+                    if (prefabs.Count == 0)
+                        continue;
+
+                    prefabsById.Add(creatureData.info.entry, (prefabs, creatureData));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                    continue;
+                }
+            }
+
+            var (creatureTable, bounds) = GetTableAndBounds(creatureTableJson, mapArea);
+            Dictionary<int, GameObject> containers = new();
+
+            foreach (var creatureRow in creatureTable)
+            {
+                if (creatureRow.map != mapId || !prefabsById.TryGetValue(creatureRow.id1, out var entry))
                     continue;
 
-                var spawner = new GameObject($"Spawner_{creatureRow.guid}");
-                spawner.transform.parent = target.transform;
-                spawner.transform.localPosition = point;
-                if (randomRotation)
-                    spawner.transform.rotation = Quaternion.Euler(0f, UnityEngine.Random.Range(0, 360), 0f);
+                var spawner = CreateSpawnerIfInBounds(creatureRow, bounds, creatureSpawnerSettings, entry.prefabs, randomRotation);
+                if (spawner == null)
+                    continue;
 
-                var spawnerComponent = spawner.AddComponent<CreatureSpawner>();
-                spawnerComponent.spawnTime = creatureRow.spawntimesecs;
-                spawnerComponent.sharedSettings = creatureSpawnerSettings;
-
-                foreach (var prefab in prefabs)
+                if (!containers.TryGetValue(creatureRow.id1, out var container))
                 {
-                    var instance = PrefabUtility.InstantiatePrefab(prefab, spawner.transform) as GameObject;
-                    if (instance.TryGetComponent<Creature>(out var creature))
-                    {
-                        creature.wanderRange = creatureRow.wander_distance;
-                        creature.wanderMinDistance = creature.wanderRange / 3;
-                    }
+                    container = new GameObject($"{entry.creatureData.info.entry}_{entry.creatureData.info.name}");
+                    container.transform.parent = target.transform;
+                    container.transform.localPosition = Vector3.zero;
+                    containers[creatureRow.id1] = container;
                 }
+
+                var position = spawner.transform.position;
+                spawner.transform.parent = container.transform;
+                spawner.transform.localPosition = position;
             }
         }
 

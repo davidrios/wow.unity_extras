@@ -216,8 +216,19 @@ namespace WoWUnityExtras
 
                 if (creatureSpawnJson != null && spawnMapReference != null && creatureSpawnerSettings != null)
                 {
-                    if (GUILayout.Button("Place Spawners"))
-                        CreatureProcessor.PlaceCreatureSpawners(creatureSpawnJson, spawnMapReference, selectedGameObject, spawnMapId, spawnCreatureDataJson, creatureSpawnerSettings);
+                    GUILayout.BeginHorizontal();
+                    try
+                    {
+                        if (GUILayout.Button("Place Spawners"))
+                            CreatureProcessor.PlaceCreatureSpawners(creatureSpawnJson, spawnMapReference, selectedGameObject, spawnMapId, spawnCreatureDataJson, creatureSpawnerSettings);
+
+                        if (GUILayout.Button("Place All From Folder"))
+                            CreatureProcessor.PlaceCreatureSpawnersFromFolder(creatureSpawnJson, spawnMapReference, selectedGameObject, spawnMapId, spawnCreatureDataJson, creatureSpawnerSettings);
+                    }
+                    finally
+                    {
+                        GUILayout.EndHorizontal();
+                    }
                 }
             }
 
