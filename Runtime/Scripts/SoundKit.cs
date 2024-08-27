@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,6 +8,7 @@ namespace WoWUnityExtras
     public class SoundKit : MonoBehaviour
     {
         private readonly List<AudioSource> audioSources = new();
+        private AudioSource currentPlaying;
 
         public void PopulateSources()
         {
@@ -16,12 +18,52 @@ namespace WoWUnityExtras
             }
         }
 
-        public void PlayRandom()
+        public void PlayRandom(bool stopFirst = false)
         {
             if (audioSources.Count == 0)
                 PopulateSources();
 
-            audioSources[Random.Range(0, audioSources.Count)].Play();
+            if (currentPlaying != null && stopFirst)
+                currentPlaying.Stop();
+
+            currentPlaying = audioSources[Random.Range(0, audioSources.Count)];
+            currentPlaying.Play();
+        }
+
+        public void StopPlaying()
+        {
+            if (currentPlaying != null)
+            {
+                currentPlaying.Stop();
+                currentPlaying = null;
+            }
+        }
+
+        public IEnumerator FadeStop(float time = 5)
+        {
+            if (currentPlaying == null)
+                yield break;
+
+            var audioSource = currentPlaying;
+            currentPlaying = null;
+            float startVolume = audioSource.volume;
+
+            while (audioSource.volume > 0)
+            {
+                audioSource.volume -= startVolume * Time.deltaTime / time;
+                yield return null;
+            }
+
+            audioSource.Stop();
+            audioSource.volume = startVolume;
+        }
+
+        public bool IsPlaying()
+        {
+            if (currentPlaying == null)
+                return false;
+
+            return currentPlaying.isPlaying;
         }
     }
 }
