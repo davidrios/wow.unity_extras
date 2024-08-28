@@ -872,11 +872,12 @@ namespace WoWUnityExtras
                 }
             }
 
-            controller.parameters = new AnimatorControllerParameter[4] {
+            controller.parameters = new AnimatorControllerParameter[5] {
                 new() { name = "state", type = AnimatorControllerParameterType.Int },
                 new() { name = "idleState", type = AnimatorControllerParameterType.Int },
                 new() { name = "leftHandClosed", type = AnimatorControllerParameterType.Bool },
                 new() { name = "rightHandClosed", type = AnimatorControllerParameterType.Bool },
+                new() { name = "offset", type = AnimatorControllerParameterType.Float },
             };
 
             var hasLeftHand = false;
@@ -937,6 +938,9 @@ namespace WoWUnityExtras
                 {
                     var newState = layer.stateMachine.AddState(Path.GetFileNameWithoutExtension(path));
                     newState.motion = AssetDatabase.LoadAssetAtPath<Motion>(path);
+                    newState.cycleOffsetParameter = "offset";
+                    newState.cycleOffsetParameterActive = true;
+                    newState.AddStateMachineBehaviour<RandomAnimOffset>();
 
                     var empty = layer.stateMachine.AddState("Empty");
                     var trans = newState.AddTransition(empty);
