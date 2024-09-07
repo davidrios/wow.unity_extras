@@ -740,7 +740,8 @@ namespace WoWUnityExtras
 
             foreach (var creatureRow in creatureTable)
             {
-                if (creatureRow.id1 != creatureData.info.entry || creatureRow.map != mapId)
+                var isGuardian = creatureRow.id1 == 36213 && creatureData.info.entry == 5624;
+                if ((creatureRow.id1 != creatureData.info.entry || creatureRow.map != mapId) && !isGuardian)
                     continue;
 
                 var spawner = CreateSpawnerIfInBounds(creatureRow, bounds, creatureSpawnerSettings, prefabs, randomRotation);
@@ -749,6 +750,8 @@ namespace WoWUnityExtras
                     var position = spawner.transform.position;
                     spawner.transform.parent = target.transform;
                     spawner.transform.localPosition = position;
+                    if (isGuardian)
+                        spawner.GetComponentInChildren<Creature>().keepOrientation = true;
                 }
             }
         }

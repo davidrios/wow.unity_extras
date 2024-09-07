@@ -23,7 +23,7 @@ namespace WoWUnityExtras
 
         [SerializeField] private float walkSpeed = 1;
 
-        [SerializeField] private bool keepOrientation = false;
+        public bool keepOrientation = false;
         private float originalOrientation;
 
         public float wanderRange = 0;
@@ -245,9 +245,9 @@ namespace WoWUnityExtras
             direction = Vector3.zero;
             creatureAnimation.Death();
             alignToTerrain = true;
-            var center = characterController.center;
-            center.y -= 0.05f;
-            characterController.center = center;
+            //var center = characterController.center;
+            //center.y -= 0.05f;
+            //characterController.center = center;
         }
     }
 }
